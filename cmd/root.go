@@ -24,11 +24,12 @@ import (
 )
 
 var (
-	target  string
-	port    int
-	open    bool
-	noOpen  bool
-	restore string
+	target      string
+	port        int
+	open        bool
+	noOpen      bool
+	restore     string
+	closeServer bool
 )
 
 var rootCmd = &cobra.Command{
@@ -94,6 +95,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&open, "open", false, "Always open browser (even when adding to existing group)")
 	rootCmd.Flags().BoolVar(&noOpen, "no-open", false, "Do not open browser automatically")
 	rootCmd.MarkFlagsMutuallyExclusive("open", "no-open")
+	rootCmd.Flags().BoolVar(&closeServer, "close", false, "Shut down the running mo server on the specified port")
 	rootCmd.Flags().StringVar(&restore, "restore", "", "Restore state from file (internal use)")
 	rootCmd.Flags().MarkHidden("restore") //nolint:errcheck
 }
@@ -107,6 +109,10 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	addr := fmt.Sprintf("localhost:%d", port)
+
+	if closeServer {
+		return doClose(addr)
+	}
 
 	if restore != "" {
 		filesByGroup, err := loadRestoreData(restore)
@@ -218,6 +224,31 @@ func tryAddToExisting(addr string, files []string) bool {
 	return true
 }
 
+func doClose(addr string) error {
+	client := &http.Client{Timeout: 2 * time.Second}
+
+	resp, err := client.Get(fmt.Sprintf("http://%s/_/api/groups", addr))
+	if err != nil {
+		return fmt.Errorf("no mo server found on %s", addr)
+	}
+
+	var groups []json.RawMessage
+	if err := json.NewDecoder(resp.Body).Decode(&groups); err != nil {
+		resp.Body.Close()
+		return fmt.Errorf("server on %s is not a mo instance", addr)
+	}
+	resp.Body.Close()
+
+	resp, err = client.Post(fmt.Sprintf("http://%s/_/api/shutdown", addr), "application/json", nil)
+	if err != nil {
+		return fmt.Errorf("failed to send shutdown request: %w", err)
+	}
+	resp.Body.Close()
+
+	slog.Info("shutdown request sent", "addr", addr)
+	return nil
+}
+
 func startServer(ctx context.Context, addr string, filesByGroup map[string][]string) error {
 	sigCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -292,6 +323,8 @@ func startServer(ctx context.Context, addr string, filesByGroup map[string][]str
 		// before we spawn the new process.
 		cleanup()
 		return spawnNewProcess(addr, restoreFile)
+	case <-state.ShutdownCh():
+		slog.Info("shutting down (requested via API)")
 	}
 
 	return nil

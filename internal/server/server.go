@@ -42,6 +42,7 @@ type State struct {
 	subscribers map[chan sseEvent]struct{}
 	watcher     *fsnotify.Watcher
 	restartCh   chan string
+	shutdownCh  chan struct{}
 }
 
 func NewState(ctx context.Context) *State {
@@ -56,6 +57,7 @@ func NewState(ctx context.Context) *State {
 		subscribers: make(map[chan sseEvent]struct{}),
 		watcher:     w,
 		restartCh:   make(chan string, 1),
+		shutdownCh:  make(chan struct{}, 1),
 	}
 
 	if w != nil {
@@ -329,6 +331,11 @@ func (s *State) RestartCh() <-chan string {
 	return s.restartCh
 }
 
+// ShutdownCh returns a channel that signals when a shutdown is requested via API.
+func (s *State) ShutdownCh() <-chan struct{} {
+	return s.shutdownCh
+}
+
 // RestoreData represents the state to be persisted across restarts.
 type RestoreData struct {
 	Groups map[string][]string `json:"groups"`
@@ -448,6 +455,7 @@ func NewHandler(state *State) http.Handler {
 	mux.HandleFunc("GET /_/api/files/{id}/raw/{path...}", handleFileRaw(state))
 	mux.HandleFunc("POST /_/api/files/open", handleOpenFile(state))
 	mux.HandleFunc("POST /_/api/restart", handleRestart(state))
+	mux.HandleFunc("POST /_/api/shutdown", handleShutdown(state))
 	mux.HandleFunc("GET /_/api/version", handleVersion())
 	mux.HandleFunc("GET /_/events", handleSSE(state))
 	mux.HandleFunc("GET /", handleSPA())
@@ -655,6 +663,16 @@ func handleRestart(state *State) http.HandlerFunc {
 
 		// Send restart signal after response is written
 		state.restartCh <- restoreFile
+	}
+}
+
+func handleShutdown(state *State) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusAccepted)
+		select {
+		case state.shutdownCh <- struct{}{}:
+		default:
+		}
 	}
 }
 

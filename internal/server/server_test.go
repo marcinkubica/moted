@@ -18,6 +18,7 @@ func newTestState(t *testing.T) *State {
 		nextID:      1,
 		subscribers: make(map[chan sseEvent]struct{}),
 		restartCh:   make(chan string, 1),
+		shutdownCh:  make(chan struct{}, 1),
 	}
 	_ = ctx
 	return s
@@ -244,6 +245,41 @@ func TestHandleMoveFile(t *testing.T) {
 
 		if rec.Code != http.StatusConflict {
 			t.Fatalf("got status %d, want %d", rec.Code, http.StatusConflict)
+		}
+	})
+}
+
+func TestHandleShutdown(t *testing.T) {
+	t.Run("returns 202 and signals shutdownCh", func(t *testing.T) {
+		s := newTestState(t)
+		handler := NewHandler(s)
+		req := httptest.NewRequest("POST", "/_/api/shutdown", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusAccepted {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusAccepted)
+		}
+
+		select {
+		case <-s.ShutdownCh():
+		default:
+			t.Fatal("shutdownCh should have received a signal")
+		}
+	})
+
+	t.Run("does not block on duplicate signal", func(t *testing.T) {
+		s := newTestState(t)
+		handler := NewHandler(s)
+
+		for i := 0; i < 2; i++ {
+			req := httptest.NewRequest("POST", "/_/api/shutdown", nil)
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if rec.Code != http.StatusAccepted {
+				t.Fatalf("call %d: got status %d, want %d", i+1, rec.Code, http.StatusAccepted)
+			}
 		}
 	})
 }
