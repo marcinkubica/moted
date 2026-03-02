@@ -99,7 +99,10 @@ func TestHandleReorderFiles(t *testing.T) {
 		}
 
 		handler := NewHandler(s)
-		body, _ := json.Marshal(reorderFilesRequest{FileIDs: []int{2, 1}})
+		body, err := json.Marshal(reorderFilesRequest{FileIDs: []int{2, 1}})
+		if err != nil {
+			t.Fatal(err)
+		}
 		req := httptest.NewRequest("PUT", "/_/api/groups/docs/order", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
@@ -119,7 +122,10 @@ func TestHandleReorderFiles(t *testing.T) {
 	t.Run("returns 400 for invalid group", func(t *testing.T) {
 		s := newTestState(t)
 		handler := NewHandler(s)
-		body, _ := json.Marshal(reorderFilesRequest{FileIDs: []int{1}})
+		body, err := json.Marshal(reorderFilesRequest{FileIDs: []int{1}})
+		if err != nil {
+			t.Fatal(err)
+		}
 		req := httptest.NewRequest("PUT", "/_/api/groups/nonexistent/order", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()
