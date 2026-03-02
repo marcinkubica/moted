@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -296,13 +295,12 @@ func spawnNewProcess(addr string, restoreFile string) error {
 		return fmt.Errorf("cannot find binary: %w", err)
 	}
 
-	_, portStr, err := net.SplitHostPort(addr)
+	_, p, err := net.SplitHostPort(addr)
 	if err != nil {
 		return fmt.Errorf("cannot parse addr: %w", err)
 	}
-	portNum, _ := strconv.Atoi(portStr)
 
-	cmd := exec.Command(binPath, "--port", strconv.Itoa(portNum), "--no-open", "--restore", restoreFile) //nolint:gosec
+	cmd := exec.Command(binPath, "--port", p, "--no-open", "--restore", restoreFile) //nolint:gosec
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
