@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.11.0](https://github.com/k1LoW/mo/compare/v0.10.1...v0.11.0) - 2026-03-02
+### Breaking Changes 🛠
+- feat: write logs to rotating files under XDG_STATE_HOME by @k1LoW in https://github.com/k1LoW/mo/pull/46
+- feat: run mo in background by default by @k1LoW in https://github.com/k1LoW/mo/pull/50
+### New Features 🎉
+- feat: add --close flag to gracefully shut down a running mo server by @k1LoW in https://github.com/k1LoW/mo/pull/47
+- feat: add --status flag to show all running mo servers by @k1LoW in https://github.com/k1LoW/mo/pull/51
+### Other Changes
+- Rename --close flag to --shutdown by @k1LoW in https://github.com/k1LoW/mo/pull/49
+
 ## [v0.10.1](https://github.com/k1LoW/mo/compare/v0.10.0...v0.10.1) - 2026-03-02
 ### Other Changes
 - feat: update tree view toggle icon to file-tree style by @k1LoW in https://github.com/k1LoW/mo/pull/45
