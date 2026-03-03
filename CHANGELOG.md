@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.11.3](https://github.com/k1LoW/mo/compare/v0.11.2...v0.11.3) - 2026-03-03
+### Other Changes
+- fix: avoid appending /default to URL when adding files to existing server by @k1LoW in https://github.com/k1LoW/mo/pull/56
+
 ## [v0.11.2](https://github.com/k1LoW/mo/compare/v0.11.1...v0.11.2) - 2026-03-03
 ### New Features 🎉
 - fix: handle atomic saves and improve live-reload reliability by @k1LoW in https://github.com/k1LoW/mo/pull/54
