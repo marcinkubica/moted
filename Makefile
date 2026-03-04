@@ -31,9 +31,13 @@ depsdev:
 	go install github.com/Songmu/gocredits/cmd/gocredits@latest
 	go install github.com/k1LoW/gostyle@latest
 
-prerelease_for_tagpr: depsdev generate
+credits: depsdev generate
 	go mod download
 	gocredits -w .
+	printf "\n================================================================\n\n" >> CREDITS
+	cat internal/frontend/CREDITS_FRONTEND >> CREDITS
+
+prerelease_for_tagpr: credits
 	git add CHANGELOG.md CREDITS go.mod go.sum
 
-.PHONY: default ci generate test build dev screenshot lint depsdev prerelease_for_tagpr
+.PHONY: default ci generate test build dev screenshot lint depsdev credits prerelease_for_tagpr
