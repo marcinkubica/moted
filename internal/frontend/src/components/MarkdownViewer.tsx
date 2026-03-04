@@ -400,8 +400,6 @@ export function MarkdownViewer({ fileId, revision, onFileOpened, onHeadingsChang
 
   const handleLinkClick = useCallback(
     async (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-      if (!href.endsWith(".md") && !href.endsWith(".mdx")) return;
-      if (href.startsWith("http://") || href.startsWith("https://")) return;
       e.preventDefault();
       try {
         const entry = await openRelativeFile(fileId, href);

@@ -1,22 +1,57 @@
+// Track unclosed brackets/braces/parens to detect multi-line statements
+function countUnclosed(line: string): number {
+  let depth = 0;
+  for (const ch of line) {
+    if (ch === "{" || ch === "(" || ch === "[") depth++;
+    else if (ch === "}" || ch === ")" || ch === "]") depth--;
+  }
+  return depth;
+}
+
 export function stripMdxSyntax(content: string): string {
+  // Short-circuit: skip processing if no MDX-like patterns exist
+  if (!/^(import|export)\s/m.test(content) && !/<[A-Z]/.test(content)) {
+    return content;
+  }
+
   const lines = content.split("\n");
   const result: string[] = [];
-  let inCodeBlock = false;
+  let fenceChar = "";
+  let fenceLen = 0;
+  let strippingDepth = 0;
 
   for (const line of lines) {
-    if (/^(`{3,}|~{3,})/.test(line)) {
-      inCodeBlock = !inCodeBlock;
+    const fenceMatch = /^(`{3,}|~{3,})/.exec(line);
+    if (fenceMatch) {
+      const char = fenceMatch[1][0];
+      const len = fenceMatch[1].length;
+      if (fenceChar) {
+        if (char === fenceChar && len >= fenceLen) {
+          fenceChar = "";
+          fenceLen = 0;
+        }
+      } else {
+        fenceChar = char;
+        fenceLen = len;
+      }
       result.push(line);
       continue;
     }
 
-    if (inCodeBlock) {
+    if (fenceChar) {
       result.push(line);
+      continue;
+    }
+
+    // Continue stripping multi-line import/export
+    if (strippingDepth > 0) {
+      strippingDepth += countUnclosed(line);
       continue;
     }
 
     // Remove import/export lines (must start at beginning of line)
     if (/^import\s/.test(line) || /^export\s/.test(line)) {
+      strippingDepth = countUnclosed(line);
       continue;
     }
 

@@ -76,4 +76,49 @@ describe("stripMdxSyntax", () => {
     const input = "~~~\nimport foo from \"bar\";\n~~~";
     expect(stripMdxSyntax(input)).toBe(input);
   });
+
+  it("does not close backtick fence with tildes", () => {
+    const input = "```\nimport foo from \"bar\";\n~~~\nimport baz from \"qux\";\n```";
+    expect(stripMdxSyntax(input)).toBe(input);
+  });
+
+  it("requires closing fence length >= opening fence length", () => {
+    const input = "````\nimport foo from \"bar\";\n```\nimport baz from \"qux\";\n````";
+    expect(stripMdxSyntax(input)).toBe(input);
+  });
+
+  it("removes multi-line import statements", () => {
+    const input = [
+      "import {",
+      "  Button,",
+      "  Card",
+      '} from "./components";',
+      "",
+      "# Hello",
+    ].join("\n");
+    expect(stripMdxSyntax(input)).toBe("\n# Hello");
+  });
+
+  it("removes multi-line export statements", () => {
+    const input = [
+      "export const meta = {",
+      '  title: "My Page",',
+      '  description: "A description"',
+      "};",
+      "",
+      "# Hello",
+    ].join("\n");
+    expect(stripMdxSyntax(input)).toBe("\n# Hello");
+  });
+
+  it("removes multi-line import with nested brackets", () => {
+    const input = [
+      "import {",
+      "  type Props,",
+      "  Component",
+      '} from "./mod";',
+      "# Content",
+    ].join("\n");
+    expect(stripMdxSyntax(input)).toBe("# Content");
+  });
 });
