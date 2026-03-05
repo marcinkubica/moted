@@ -546,6 +546,47 @@ func TestRemovePattern(t *testing.T) {
 	})
 }
 
+func TestGroupPersistsWithPatternsAfterFileRemoval(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "a.md"), []byte("# A"), 0o600) //nolint:errcheck
+
+	s := newTestState(t)
+	pattern := filepath.Join(dir, "*.md")
+	_, err := s.AddPattern(pattern, DefaultGroup)
+	if err != nil {
+		t.Fatalf("AddPattern returned error: %v", err)
+	}
+
+	groups := s.Groups()
+	if len(groups) != 1 || len(groups[0].Files) != 1 {
+		t.Fatalf("expected 1 group with 1 file, got %d groups", len(groups))
+	}
+
+	// Remove the only file — group should persist because pattern remains.
+	fileID := groups[0].Files[0].ID
+	if !s.RemoveFile(fileID) {
+		t.Fatal("RemoveFile returned false")
+	}
+
+	groups = s.Groups()
+	if len(groups) != 1 {
+		t.Fatal("group should persist when patterns remain")
+	}
+	if len(groups[0].Files) != 0 {
+		t.Fatalf("expected 0 files, got %d", len(groups[0].Files))
+	}
+	if len(s.PatternsForGroup(DefaultGroup)) != 1 {
+		t.Fatal("pattern should still be registered")
+	}
+
+	// Now remove the pattern — group should be deleted.
+	s.RemovePattern(pattern, DefaultGroup)
+	groups = s.Groups()
+	if len(groups) != 0 {
+		t.Fatal("group should be deleted when no files and no patterns remain")
+	}
+}
+
 func TestRemoveDirWatch(t *testing.T) {
 	s := newTestState(t)
 

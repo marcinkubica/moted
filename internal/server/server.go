@@ -267,7 +267,7 @@ func (s *State) RemoveFile(id int) bool {
 			if f.ID == id {
 				removedPath = f.Path
 				g.Files = append(g.Files[:i], g.Files[i+1:]...)
-				if len(g.Files) == 0 {
+				if len(g.Files) == 0 && !s.groupHasPatterns(gName) {
 					delete(s.groups, gName)
 				}
 				found = true
@@ -454,6 +454,10 @@ func (s *State) RemovePattern(absPattern, groupName string) bool {
 
 	slog.Info("pattern removed", "pattern", absPattern, "group", groupName)
 	s.mu.Lock()
+	// Clean up empty group when last pattern is removed and no files remain.
+	if g, ok := s.groups[groupName]; ok && len(g.Files) == 0 && !s.groupHasPatterns(groupName) {
+		delete(s.groups, groupName)
+	}
 	s.sendEvent(sseEvent{Name: "update", Data: "{}"})
 	s.mu.Unlock()
 	return true
@@ -505,6 +509,17 @@ func (s *State) ExportState() (string, error) {
 	}
 
 	return WriteRestoreFile(data)
+}
+
+// groupHasPatterns reports whether the group has any registered watch patterns.
+// Caller must hold s.mu.
+func (s *State) groupHasPatterns(groupName string) bool {
+	for _, p := range s.patterns {
+		if p.Group == groupName {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *State) walkDirsForPattern(gp *GlobPattern, fn func(string)) {
