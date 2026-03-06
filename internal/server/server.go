@@ -60,6 +60,9 @@ type State struct {
 	shutdownCh  chan struct{}
 	patterns    []*GlobPattern
 	watchedDirs map[string]int // directory → reference count
+
+	backupCh     chan struct{}       // dirty signal (buffered, size 1)
+	backupSaveFn func(RestoreData)  // backup write callback
 }
 
 func NewState(ctx context.Context) *State {
@@ -489,11 +492,9 @@ func WriteRestoreFile(data RestoreData) (string, error) {
 	return f.Name(), nil
 }
 
-// ExportState writes the current groups, file paths, and patterns to a temporary file and returns the path.
-func (s *State) ExportState() (string, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
+// snapshotRestoreData creates a RestoreData snapshot of the current state.
+// Caller must hold s.mu (at least RLock).
+func (s *State) snapshotRestoreData() RestoreData {
 	data := RestoreData{
 		Groups: make(map[string][]string, len(s.groups)),
 	}
@@ -512,7 +513,71 @@ func (s *State) ExportState() (string, error) {
 		}
 	}
 
-	return WriteRestoreFile(data)
+	return data
+}
+
+// ExportState writes the current groups, file paths, and patterns to a temporary file and returns the path.
+func (s *State) ExportState() (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return WriteRestoreFile(s.snapshotRestoreData())
+}
+
+// EnableBackup starts a background goroutine that periodically saves state
+// via the provided callback when state changes are detected.
+func (s *State) EnableBackup(ctx context.Context, saveFn func(RestoreData)) {
+	s.backupCh = make(chan struct{}, 1)
+	s.backupSaveFn = saveFn
+	donegroup.Go(ctx, func() error {
+		s.backupLoop(ctx)
+		return nil
+	})
+}
+
+// markDirty signals that state has changed and a backup save is needed.
+// Non-blocking: safe to call while holding s.mu.
+func (s *State) markDirty() {
+	if s.backupCh == nil {
+		return
+	}
+	select {
+	case s.backupCh <- struct{}{}:
+	default:
+	}
+}
+
+func (s *State) backupLoop(ctx context.Context) {
+	var timer *time.Timer
+	for {
+		select {
+		case <-ctx.Done():
+			if timer != nil {
+				timer.Stop()
+			}
+			s.saveBackup()
+			return
+		case _, ok := <-s.backupCh:
+			if !ok {
+				return
+			}
+			if timer != nil {
+				timer.Stop()
+			}
+			timer = time.AfterFunc(1*time.Second, func() {
+				s.saveBackup()
+			})
+		}
+	}
+}
+
+func (s *State) saveBackup() {
+	if s.backupSaveFn == nil {
+		return
+	}
+	s.mu.RLock()
+	data := s.snapshotRestoreData()
+	s.mu.RUnlock()
+	s.backupSaveFn(data)
 }
 
 // groupHasPatterns reports whether the group has any registered watch patterns.
@@ -644,6 +709,9 @@ func (s *State) sendEvent(e sseEvent) {
 		default:
 			slog.Warn("SSE event dropped (subscriber buffer full)", "event", e.Name)
 		}
+	}
+	if e.Name == "update" {
+		s.markDirty()
 	}
 }
 
