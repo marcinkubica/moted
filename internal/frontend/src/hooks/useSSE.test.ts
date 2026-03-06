@@ -31,6 +31,7 @@ class MockEventSource {
 }
 
 let instances: MockEventSource[] = [];
+const originalLocation = window.location;
 
 beforeEach(() => {
   instances = [];
@@ -42,37 +43,34 @@ beforeEach(() => {
       return es;
     }),
   );
+  Object.defineProperty(window, "location", {
+    value: { ...originalLocation, reload: vi.fn() },
+    writable: true,
+    configurable: true,
+  });
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
+  Object.defineProperty(window, "location", {
+    value: originalLocation,
+    writable: true,
+    configurable: true,
+  });
 });
 
 describe("useSSE started event", () => {
   it("does not reload on first connection", () => {
-    const reloadSpy = vi.fn();
-    Object.defineProperty(window, "location", {
-      value: { reload: reloadSpy },
-      writable: true,
-      configurable: true,
-    });
-
     renderHook(() => useSSE({ onUpdate: vi.fn() }));
 
     const es = instances[0];
     es.emit("started", JSON.stringify({ pid: 1000 }));
 
-    expect(reloadSpy).not.toHaveBeenCalled();
+    expect(window.location.reload).not.toHaveBeenCalled();
   });
 
   it("does not reload on reconnect with same PID", () => {
-    const reloadSpy = vi.fn();
-    Object.defineProperty(window, "location", {
-      value: { reload: reloadSpy },
-      writable: true,
-      configurable: true,
-    });
-
     vi.useFakeTimers();
     renderHook(() => useSSE({ onUpdate: vi.fn() }));
 
@@ -88,18 +86,10 @@ describe("useSSE started event", () => {
     const es2 = instances[1];
     es2.emit("started", JSON.stringify({ pid: 1000 }));
 
-    expect(reloadSpy).not.toHaveBeenCalled();
-    vi.useRealTimers();
+    expect(window.location.reload).not.toHaveBeenCalled();
   });
 
   it("reloads on reconnect with different PID", () => {
-    const reloadSpy = vi.fn();
-    Object.defineProperty(window, "location", {
-      value: { reload: reloadSpy },
-      writable: true,
-      configurable: true,
-    });
-
     vi.useFakeTimers();
     renderHook(() => useSSE({ onUpdate: vi.fn() }));
 
@@ -115,7 +105,6 @@ describe("useSSE started event", () => {
     const es2 = instances[1];
     es2.emit("started", JSON.stringify({ pid: 2000 }));
 
-    expect(reloadSpy).toHaveBeenCalledOnce();
-    vi.useRealTimers();
+    expect(window.location.reload).toHaveBeenCalledOnce();
   });
 });
