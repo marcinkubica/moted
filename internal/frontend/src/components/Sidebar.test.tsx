@@ -131,4 +131,74 @@ describe("Sidebar", () => {
     );
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
+
+  it("shows search input when searchQuery is non-null", () => {
+    render(
+      <Sidebar
+        groups={groups}
+        activeGroup="default"
+        activeFileId={null}
+        onFileSelect={() => {}}
+        onFilesReorder={() => {}}
+        viewMode="flat"
+        searchQuery=""
+        onSearchQueryChange={() => {}}
+      />,
+    );
+    expect(screen.getByPlaceholderText("Search files...")).toBeInTheDocument();
+  });
+
+  it("does not show search input when searchQuery is null", () => {
+    render(
+      <Sidebar
+        groups={groups}
+        activeGroup="default"
+        activeFileId={null}
+        onFileSelect={() => {}}
+        onFilesReorder={() => {}}
+        viewMode="flat"
+        searchQuery={null}
+        onSearchQueryChange={() => {}}
+      />,
+    );
+    expect(screen.queryByPlaceholderText("Search files...")).not.toBeInTheDocument();
+  });
+
+  it("filters files by search query", () => {
+    render(
+      <Sidebar
+        groups={groups}
+        activeGroup="default"
+        activeFileId={null}
+        onFileSelect={() => {}}
+        onFilesReorder={() => {}}
+        viewMode="flat"
+        searchQuery="read"
+        onSearchQueryChange={() => {}}
+      />,
+    );
+    expect(screen.getByText("README.md")).toBeInTheDocument();
+    expect(screen.queryByText("GUIDE.md")).not.toBeInTheDocument();
+  });
+
+  it("calls onSearchQueryChange with null on Escape key", async () => {
+    const user = userEvent.setup();
+    const onSearchQueryChange = vi.fn();
+    render(
+      <Sidebar
+        groups={groups}
+        activeGroup="default"
+        activeFileId={null}
+        onFileSelect={() => {}}
+        onFilesReorder={() => {}}
+        viewMode="flat"
+        searchQuery=""
+        onSearchQueryChange={onSearchQueryChange}
+      />,
+    );
+    const input = screen.getByPlaceholderText("Search files...");
+    await user.click(input);
+    await user.keyboard("{Escape}");
+    expect(onSearchQueryChange).toHaveBeenCalledWith(null);
+  });
 });
