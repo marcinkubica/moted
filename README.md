@@ -131,6 +131,7 @@ http://localhost:6275 (pid 12345, v0.12.0)
 
 $ mo --shutdown            # Shut down the mo server on the default port
 $ mo --shutdown -p 6276    # Shut down the mo server on a specific port
+$ mo --restart             # Restart the mo server on the default port
 ```
 
 If you need the mo server to run in the foreground (e.g. for debugging), use `--foreground`:
@@ -141,7 +142,7 @@ $ mo --foreground README.md
 
 ### Server restart
 
-Click the <img src="images/icons/restart.svg" width="16" height="16" alt="restart"> restart button (bottom-right corner) to restart the `mo` server process. The current session — all open files and groups — is preserved across the restart. This is useful when you have updated the `mo` binary and want to pick up the new version without re-opening your files.
+Click the <img src="images/icons/restart.svg" width="16" height="16" alt="restart"> restart button (bottom-right corner) or run `mo --restart` to restart the `mo` server process. The current session — all open files and groups — is preserved across the restart. This is useful when you have updated the `mo` binary and want to pick up the new version without re-opening your files.
 
 ### Flags
 
@@ -155,6 +156,7 @@ Click the <img src="images/icons/restart.svg" width="16" height="16" alt="restar
 | `--watch` | `-w` | | Glob pattern to watch for matching files (repeatable) |
 | `--unwatch` | | | Remove a watched glob pattern (repeatable) |
 | `--shutdown` | | | Shut down the running mo server |
+| `--restart` | | | Restart the running mo server |
 | `--foreground` | | | Run mo server in foreground |
 
 ## Build
