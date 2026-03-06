@@ -91,6 +91,7 @@ Starting and Stopping:
   $ mo README.md            # Starts mo in the background
   $ mo --status             # Shows all running mo servers
   $ mo --shutdown           # Shuts it down
+  $ mo --restart            # Restarts it (preserving session)
 
   Use --foreground to keep the mo server in the foreground.
 
