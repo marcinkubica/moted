@@ -492,6 +492,24 @@ func WriteRestoreFile(data RestoreData) (string, error) {
 	return f.Name(), nil
 }
 
+// ExportState writes the current groups, file paths, and patterns to a temporary file and returns the path.
+func (s *State) ExportState() (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return WriteRestoreFile(s.snapshotRestoreData())
+}
+
+// EnableBackup starts a background goroutine that periodically saves state
+// via the provided callback when state changes are detected.
+func (s *State) EnableBackup(ctx context.Context, saveFn func(RestoreData)) {
+	s.backupCh = make(chan struct{}, 1)
+	s.backupSaveFn = saveFn
+	donegroup.Go(ctx, func() error {
+		s.backupLoop(ctx)
+		return nil
+	})
+}
+
 // snapshotRestoreData creates a RestoreData snapshot of the current state.
 // Caller must hold s.mu (at least RLock).
 func (s *State) snapshotRestoreData() RestoreData {
@@ -514,24 +532,6 @@ func (s *State) snapshotRestoreData() RestoreData {
 	}
 
 	return data
-}
-
-// ExportState writes the current groups, file paths, and patterns to a temporary file and returns the path.
-func (s *State) ExportState() (string, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return WriteRestoreFile(s.snapshotRestoreData())
-}
-
-// EnableBackup starts a background goroutine that periodically saves state
-// via the provided callback when state changes are detected.
-func (s *State) EnableBackup(ctx context.Context, saveFn func(RestoreData)) {
-	s.backupCh = make(chan struct{}, 1)
-	s.backupSaveFn = saveFn
-	donegroup.Go(ctx, func() error {
-		s.backupLoop(ctx)
-		return nil
-	})
 }
 
 // markDirty signals that state has changed and a backup save is needed.

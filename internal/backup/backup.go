@@ -51,16 +51,16 @@ func Save(port int, data any) error {
 
 	if _, err := tmp.Write(b); err != nil {
 		tmp.Close()
-		os.Remove(tmpName)
+		os.Remove(tmpName) //nolint:gosec // Path is from our own CreateTemp, not user-supplied
 		return fmt.Errorf("failed to write backup data: %w", err)
 	}
 	if err := tmp.Close(); err != nil {
-		os.Remove(tmpName)
+		os.Remove(tmpName) //nolint:gosec // Path is from our own CreateTemp, not user-supplied
 		return fmt.Errorf("failed to close temp file: %w", err)
 	}
 
-	if err := os.Rename(tmpName, p); err != nil {
-		os.Remove(tmpName)
+	if err := os.Rename(tmpName, p); err != nil { //nolint:gosec // Both paths are from our own Path() and CreateTemp
+		os.Remove(tmpName) //nolint:gosec // Path is from our own CreateTemp, not user-supplied
 		return fmt.Errorf("failed to rename temp file: %w", err)
 	}
 

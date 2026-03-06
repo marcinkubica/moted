@@ -168,12 +168,12 @@ func run(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "mo: clear saved session for port %d? [Y/n] ", port)
 		scanner := bufio.NewScanner(os.Stdin)
 		if !scanner.Scan() {
-			fmt.Fprintln(os.Stderr, "mo: cancelled")
+			fmt.Fprintln(os.Stderr, "mo: canceled")
 			return nil
 		}
 		ans := strings.TrimSpace(scanner.Text())
 		if ans != "" && strings.ToLower(ans) != "y" && strings.ToLower(ans) != "yes" {
-			fmt.Fprintln(os.Stderr, "mo: cancelled")
+			fmt.Fprintln(os.Stderr, "mo: canceled")
 			return nil
 		}
 		if err := backup.Remove(port); err != nil {
