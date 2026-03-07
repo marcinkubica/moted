@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.15.2](https://github.com/k1LoW/mo/compare/v0.15.1...v0.15.2) - 2026-03-07
+### Other Changes
+- fix: always restore backup when starting a new server by @k1LoW in https://github.com/k1LoW/mo/pull/80
+
 ## [v0.15.1](https://github.com/k1LoW/mo/compare/v0.15.0...v0.15.1) - 2026-03-06
 
 ## [v0.15.0](https://github.com/k1LoW/mo/compare/v0.14.1...v0.15.0) - 2026-03-06
