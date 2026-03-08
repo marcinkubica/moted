@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -284,6 +286,212 @@ func TestFilterValidRestoreData(t *testing.T) {
 		}
 		if len(patternsByGroup) != 0 {
 			t.Fatalf("got %d pattern groups, want 0", len(patternsByGroup))
+		}
+	})
+}
+
+func TestDeeplinksToJSON(t *testing.T) {
+	t.Run("empty entries returns empty slice", func(t *testing.T) {
+		got := deeplinksToJSON(nil)
+		if len(got) != 0 {
+			t.Fatalf("got %d entries, want 0", len(got))
+		}
+	})
+
+	t.Run("file entries with paths", func(t *testing.T) {
+		entries := []deeplinkEntry{
+			{URL: "http://localhost:6275/?file=abc", Path: "/home/user/README.md"},
+			{URL: "http://localhost:6275/?file=def", Path: "/home/user/CHANGELOG.md"},
+		}
+		got := deeplinksToJSON(entries)
+		if len(got) != 2 {
+			t.Fatalf("got %d entries, want 2", len(got))
+		}
+		if got[0].URL != entries[0].URL {
+			t.Errorf("got URL %q, want %q", got[0].URL, entries[0].URL)
+		}
+		if got[0].Name != "README.md" {
+			t.Errorf("got Name %q, want %q", got[0].Name, "README.md")
+		}
+		if got[0].Path != entries[0].Path {
+			t.Errorf("got Path %q, want %q", got[0].Path, entries[0].Path)
+		}
+	})
+
+	t.Run("uploaded files with empty path use Name for display", func(t *testing.T) {
+		entries := []deeplinkEntry{
+			{URL: "http://localhost:6275/?file=abc", Path: "", Name: "uploaded.md"},
+		}
+		got := deeplinksToJSON(entries)
+		if got[0].Name != "uploaded.md" {
+			t.Errorf("got Name %q, want %q", got[0].Name, "uploaded.md")
+		}
+		if got[0].Path != "" {
+			t.Errorf("got Path %q, want empty string", got[0].Path)
+		}
+	})
+}
+
+func TestDeeplinkDisplayNames(t *testing.T) {
+	t.Run("uses Path when available", func(t *testing.T) {
+		entries := []deeplinkEntry{
+			{Path: "/a/README.md"},
+			{Path: "/b/CHANGELOG.md"},
+		}
+		got := deeplinkDisplayNames(entries)
+		if got[0] != "README.md" || got[1] != "CHANGELOG.md" {
+			t.Fatalf("got %v, want [README.md CHANGELOG.md]", got)
+		}
+	})
+
+	t.Run("falls back to Name when Path is empty", func(t *testing.T) {
+		entries := []deeplinkEntry{
+			{Path: "/a/README.md"},
+			{Path: "", Name: "uploaded.md"},
+		}
+		got := deeplinkDisplayNames(entries)
+		if got[0] != "README.md" || got[1] != "uploaded.md" {
+			t.Fatalf("got %v, want [README.md uploaded.md]", got)
+		}
+	})
+
+	t.Run("disambiguates duplicate names across path and uploaded", func(t *testing.T) {
+		entries := []deeplinkEntry{
+			{Path: "/a/docs/README.md"},
+			{Path: "", Name: "README.md"},
+		}
+		got := deeplinkDisplayNames(entries)
+		if got[0] == got[1] {
+			t.Fatalf("names should differ but both are %q", got[0])
+		}
+	})
+}
+
+func TestEmitServeOutput(t *testing.T) {
+	entries := []deeplinkEntry{
+		{URL: "http://localhost:6275/?file=abc", Path: "/home/user/README.md"},
+	}
+
+	t.Run("json mode outputs valid JSON", func(t *testing.T) {
+		jsonOutput = true
+		defer func() { jsonOutput = false }()
+
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		oldStdout := os.Stdout
+		os.Stdout = w
+
+		emitServeOutput("localhost:6275", entries, true)
+
+		w.Close()
+		os.Stdout = oldStdout
+
+		var buf bytes.Buffer
+		buf.ReadFrom(r) //nolint:errcheck
+
+		var output jsonServeOutput
+		if err := json.Unmarshal(buf.Bytes(), &output); err != nil {
+			t.Fatalf("invalid JSON: %v\noutput: %s", err, buf.String())
+		}
+		if output.URL != "http://localhost:6275" {
+			t.Errorf("got URL %q, want %q", output.URL, "http://localhost:6275")
+		}
+		if len(output.Files) != 1 {
+			t.Fatalf("got %d files, want 1", len(output.Files))
+		}
+		if output.Files[0].Name != "README.md" {
+			t.Errorf("got file name %q, want %q", output.Files[0].Name, "README.md")
+		}
+	})
+
+	t.Run("text mode with printURL prints URL line", func(t *testing.T) {
+		jsonOutput = false
+
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		oldStdout := os.Stdout
+		os.Stdout = w
+
+		emitServeOutput("localhost:6275", entries, true)
+
+		w.Close()
+		os.Stdout = oldStdout
+
+		var buf bytes.Buffer
+		buf.ReadFrom(r) //nolint:errcheck
+
+		output := buf.String()
+		if !strings.Contains(output, "http://localhost:6275\n") {
+			t.Errorf("expected URL line in output, got %q", output)
+		}
+		if !strings.Contains(output, "README.md") {
+			t.Errorf("expected deeplink in output, got %q", output)
+		}
+	})
+
+	t.Run("text mode without printURL omits URL line", func(t *testing.T) {
+		jsonOutput = false
+
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		oldStdout := os.Stdout
+		os.Stdout = w
+
+		emitServeOutput("localhost:6275", entries, false)
+
+		w.Close()
+		os.Stdout = oldStdout
+
+		var buf bytes.Buffer
+		buf.ReadFrom(r) //nolint:errcheck
+
+		output := buf.String()
+		if strings.Contains(output, "http://localhost:6275\n") {
+			t.Errorf("URL line should not appear, got %q", output)
+		}
+		if !strings.Contains(output, "README.md") {
+			t.Errorf("expected deeplink in output, got %q", output)
+		}
+	})
+
+	t.Run("json mode with uploaded file keeps path empty", func(t *testing.T) {
+		jsonOutput = true
+		defer func() { jsonOutput = false }()
+
+		uploaded := []deeplinkEntry{
+			{URL: "http://localhost:6275/?file=xyz", Path: "", Name: "upload.md"},
+		}
+
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		oldStdout := os.Stdout
+		os.Stdout = w
+
+		emitServeOutput("localhost:6275", uploaded, true)
+
+		w.Close()
+		os.Stdout = oldStdout
+
+		var buf bytes.Buffer
+		buf.ReadFrom(r) //nolint:errcheck
+
+		var output jsonServeOutput
+		if err := json.Unmarshal(buf.Bytes(), &output); err != nil {
+			t.Fatalf("invalid JSON: %v", err)
+		}
+		if output.Files[0].Path != "" {
+			t.Errorf("got Path %q, want empty string", output.Files[0].Path)
+		}
+		if output.Files[0].Name != "upload.md" {
+			t.Errorf("got Name %q, want %q", output.Files[0].Name, "upload.md")
 		}
 	})
 }
