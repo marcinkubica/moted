@@ -31,9 +31,11 @@ export function useFileDrop(activeGroup: string): { isDragging: boolean } {
   const handleDragLeave = useCallback((e: DragEvent) => {
     if (!hasFiles(e)) return;
     e.preventDefault();
-    dragCounter.current--;
-    if (dragCounter.current === 0) {
-      setIsDragging(false);
+    if (dragCounter.current > 0) {
+      dragCounter.current--;
+      if (dragCounter.current === 0) {
+        setIsDragging(false);
+      }
     }
   }, []);
 
@@ -45,11 +47,12 @@ export function useFileDrop(activeGroup: string): { isDragging: boolean } {
 
       if (!e.dataTransfer) return;
 
+      const maxSize = 10 * 1024 * 1024; // 10MB, consistent with server limit
       const fileList = e.dataTransfer.files;
       const uploads: Promise<void>[] = [];
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
-        if (isMarkdown(file.name)) {
+        if (isMarkdown(file.name) && file.size <= maxSize) {
           uploads.push(file.text().then((content) => uploadFile(file.name, content, activeGroup)).catch(() => {}));
         }
       }
