@@ -479,12 +479,12 @@ func TestAddPattern_InitialExpansion(t *testing.T) {
 
 	s := newTestState(t)
 	pattern := filepath.Join(dir, "*.md")
-	matched, err := s.AddPattern(pattern, DefaultGroup)
+	entries, err := s.AddPattern(pattern, DefaultGroup)
 	if err != nil {
 		t.Fatalf("AddPattern returned error: %v", err)
 	}
-	if matched != 2 {
-		t.Fatalf("got matched=%d, want 2", matched)
+	if len(entries) != 2 {
+		t.Fatalf("got matched=%d, want 2", len(entries))
 	}
 
 	groups := s.Groups()
@@ -507,12 +507,12 @@ func TestAddPattern_Duplicate(t *testing.T) {
 		t.Fatalf("AddPattern returned error: %v", err)
 	}
 
-	matched, err := s.AddPattern(pattern, DefaultGroup)
+	entries, err := s.AddPattern(pattern, DefaultGroup)
 	if err != nil {
 		t.Fatalf("duplicate AddPattern returned error: %v", err)
 	}
-	if matched != 0 {
-		t.Fatalf("duplicate AddPattern returned matched=%d, want 0", matched)
+	if len(entries) != 0 {
+		t.Fatalf("duplicate AddPattern returned matched=%d, want 0", len(entries))
 	}
 
 	patterns := s.Patterns()
@@ -823,7 +823,7 @@ func TestHandleAddPattern(t *testing.T) {
 		t.Fatalf("got status %d, want %d: %s", rec.Code, http.StatusOK, rec.Body.String())
 	}
 
-	var resp addPatternResponse
+	var resp AddPatternResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}

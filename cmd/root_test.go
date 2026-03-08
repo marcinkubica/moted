@@ -159,6 +159,70 @@ func TestMergeGroups(t *testing.T) {
 	})
 }
 
+func TestBuildDeeplink(t *testing.T) {
+	tests := []struct {
+		addr      string
+		groupName string
+		fileID    string
+		want      string
+	}{
+		{"localhost:6275", server.DefaultGroup, "abc12345", "http://localhost:6275/?file=abc12345"},
+		{"localhost:6275", "design", "def67890", "http://localhost:6275/design?file=def67890"},
+	}
+	for _, tt := range tests {
+		got := buildDeeplink(tt.addr, tt.groupName, tt.fileID)
+		if got != tt.want {
+			t.Errorf("buildDeeplink(%q, %q, %q) = %q, want %q", tt.addr, tt.groupName, tt.fileID, got, tt.want)
+		}
+	}
+}
+
+func TestDisplayNames(t *testing.T) {
+	t.Run("unique basenames stay short", func(t *testing.T) {
+		paths := []string{"/a/README.md", "/b/CHANGELOG.md"}
+		got := displayNames(paths)
+		if got[0] != "README.md" || got[1] != "CHANGELOG.md" {
+			t.Fatalf("got %v, want [README.md CHANGELOG.md]", got)
+		}
+	})
+
+	t.Run("duplicate basenames get parent dir", func(t *testing.T) {
+		paths := []string{"/project/docs/README.md", "/project/api/README.md"}
+		got := displayNames(paths)
+		want0 := filepath.Join("docs", "README.md")
+		want1 := filepath.Join("api", "README.md")
+		if got[0] != want0 || got[1] != want1 {
+			t.Fatalf("got %v, want [%s %s]", got, want0, want1)
+		}
+	})
+
+	t.Run("deeply nested duplicates get enough context", func(t *testing.T) {
+		paths := []string{"/a/x/README.md", "/b/x/README.md"}
+		got := displayNames(paths)
+		want0 := filepath.Join("a", "x", "README.md")
+		want1 := filepath.Join("b", "x", "README.md")
+		if got[0] != want0 || got[1] != want1 {
+			t.Fatalf("got %v, want [%s %s]", got, want0, want1)
+		}
+	})
+
+	t.Run("identical paths do not loop forever", func(t *testing.T) {
+		paths := []string{"/a/b/README.md", "/a/b/README.md"}
+		got := displayNames(paths)
+		if len(got) != 2 {
+			t.Fatalf("got %d names, want 2", len(got))
+		}
+	})
+
+	t.Run("single entry stays short", func(t *testing.T) {
+		paths := []string{"/a/b/c/README.md"}
+		got := displayNames(paths)
+		if got[0] != "README.md" {
+			t.Fatalf("got %v, want [README.md]", got)
+		}
+	})
+}
+
 func TestFilterValidRestoreData(t *testing.T) {
 	t.Run("keeps only existing files", func(t *testing.T) {
 		dir := t.TempDir()

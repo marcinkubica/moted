@@ -413,12 +413,14 @@ func tryAddToExisting(addr string, files []string, patterns []string) bool {
 		}
 	}
 
-	postItems(result.client, addr, "/_/api/files", "path", target, files)
-	postItems(result.client, addr, "/_/api/patterns", "pattern", target, patterns)
+	var deeplinks []deeplinkEntry
+	deeplinks = append(deeplinks, postFiles(result.client, addr, target, files)...)
+	deeplinks = append(deeplinks, postPatterns(result.client, addr, target, patterns)...)
 
 	added := len(files) + len(patterns)
 	slog.Info("added to existing server", "files", len(files), "patterns", len(patterns), "addr", addr)
 	fmt.Fprintf(os.Stderr, "mo: added %d item(s) to http://%s\n", added, addr)
+	printDeeplinks(deeplinks)
 
 	if isNewGroup || open {
 		openBrowser(addr)
@@ -427,26 +429,150 @@ func tryAddToExisting(addr string, files []string, patterns []string) bool {
 	return true
 }
 
-func postItems(client *http.Client, addr, endpoint, key, group string, items []string) {
-	for _, item := range items {
+func postFiles(client *http.Client, addr, group string, files []string) []deeplinkEntry {
+	var entries []deeplinkEntry
+	for _, f := range files {
 		body, err := json.Marshal(map[string]string{
-			key:     item,
+			"path":  f,
 			"group": group,
 		})
 		if err != nil {
-			slog.Warn("failed to marshal request", key, item, "error", err)
+			slog.Warn("failed to marshal request", "path", f, "error", err)
 			continue
 		}
 		resp, err := client.Post(
-			fmt.Sprintf("http://%s%s", addr, endpoint),
+			fmt.Sprintf("http://%s/_/api/files", addr),
 			"application/json",
 			bytes.NewReader(body),
 		)
 		if err != nil {
-			slog.Warn("failed to post item", key, item, "error", err)
+			slog.Warn("failed to post file", "path", f, "error", err)
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			slog.Warn("failed to add file", "path", f, "status", resp.StatusCode)
+			resp.Body.Close()
+			continue
+		}
+		var entry server.FileEntry
+		if err := json.NewDecoder(resp.Body).Decode(&entry); err != nil {
+			slog.Warn("failed to decode file response", "error", err)
+			resp.Body.Close()
 			continue
 		}
 		resp.Body.Close()
+		entries = append(entries, deeplinkEntry{
+			URL:  buildDeeplink(addr, group, entry.ID),
+			Path: entry.Path,
+		})
+	}
+	return entries
+}
+
+func postPatterns(client *http.Client, addr, group string, patterns []string) []deeplinkEntry {
+	var entries []deeplinkEntry
+	for _, pat := range patterns {
+		body, err := json.Marshal(map[string]string{
+			"pattern": pat,
+			"group":   group,
+		})
+		if err != nil {
+			slog.Warn("failed to marshal request", "pattern", pat, "error", err)
+			continue
+		}
+		resp, err := client.Post(
+			fmt.Sprintf("http://%s/_/api/patterns", addr),
+			"application/json",
+			bytes.NewReader(body),
+		)
+		if err != nil {
+			slog.Warn("failed to post pattern", "pattern", pat, "error", err)
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			slog.Warn("failed to add pattern", "pattern", pat, "status", resp.StatusCode)
+			resp.Body.Close()
+			continue
+		}
+		var patResp server.AddPatternResponse
+		if err := json.NewDecoder(resp.Body).Decode(&patResp); err != nil {
+			slog.Warn("failed to decode pattern response", "error", err)
+			resp.Body.Close()
+			continue
+		}
+		resp.Body.Close()
+		for _, f := range patResp.Files {
+			entries = append(entries, deeplinkEntry{
+				URL:  buildDeeplink(addr, group, f.ID),
+				Path: f.Path,
+			})
+		}
+	}
+	return entries
+}
+
+type deeplinkEntry struct {
+	URL  string
+	Path string // absolute file path for display name computation
+}
+
+func buildDeeplink(addr, groupName, fileID string) string {
+	if groupName == server.DefaultGroup {
+		return fmt.Sprintf("http://%s/?file=%s", addr, fileID)
+	}
+	return fmt.Sprintf("http://%s/%s?file=%s", addr, groupName, fileID)
+}
+
+// displayNames computes short display names for file paths, adding parent
+// directory components as needed to distinguish files with the same base name.
+func displayNames(paths []string) []string {
+	names := make([]string, len(paths))
+	// Track remaining parent path for each entry
+	dirs := make([]string, len(paths))
+	for i, p := range paths {
+		names[i] = filepath.Base(p)
+		dirs[i] = filepath.Dir(p)
+	}
+
+	for {
+		dupes := make(map[string][]int)
+		for i, n := range names {
+			dupes[n] = append(dupes[n], i)
+		}
+		changed := false
+		for _, indices := range dupes {
+			if len(indices) <= 1 {
+				continue
+			}
+			for _, idx := range indices {
+				// Stop expanding when we've reached the filesystem root
+				if dirs[idx] == filepath.Dir(dirs[idx]) {
+					continue
+				}
+				parent := filepath.Base(dirs[idx])
+				names[idx] = filepath.Join(parent, names[idx])
+				dirs[idx] = filepath.Dir(dirs[idx])
+				changed = true
+			}
+		}
+		if !changed {
+			break
+		}
+	}
+	return names
+}
+
+func printDeeplinks(entries []deeplinkEntry) {
+	if len(entries) == 0 {
+		return
+	}
+	paths := make([]string, len(entries))
+	for i, e := range entries {
+		paths[i] = e.Path
+	}
+	names := displayNames(paths)
+	for i, e := range entries {
+		fmt.Fprintf(os.Stderr, "  %s  %s\n", e.URL, names[i])
 	}
 }
 
@@ -582,7 +708,7 @@ type statusResponse struct {
 		Name  string `json:"name"`
 		Files []struct {
 			Name string `json:"name"`
-			ID   int    `json:"id"`
+			ID   string `json:"id"`
 			Path string `json:"path"`
 		} `json:"files"`
 		Patterns []string `json:"patterns,omitempty"`
@@ -697,19 +823,34 @@ func startServer(ctx context.Context, addr string, filesByGroup map[string][]str
 		}
 	})
 
+	var deeplinks []deeplinkEntry
 	for group, files := range filesByGroup {
 		for _, f := range files {
-			state.AddFile(f, group)
+			entry := state.AddFile(f, group)
+			deeplinks = append(deeplinks, deeplinkEntry{
+				URL:  buildDeeplink(addr, group, entry.ID),
+				Path: entry.Path,
+			})
 		}
 	}
 
 	for group, pats := range patternsByGroup {
 		for _, pat := range pats {
-			if _, err := state.AddPattern(pat, group); err != nil {
+			entries, err := state.AddPattern(pat, group)
+			if err != nil {
 				slog.Warn("failed to add pattern", "pattern", pat, "error", err)
+				continue
+			}
+			for _, entry := range entries {
+				deeplinks = append(deeplinks, deeplinkEntry{
+					URL:  buildDeeplink(addr, group, entry.ID),
+					Path: entry.Path,
+				})
 			}
 		}
 	}
+
+	printDeeplinks(deeplinks)
 
 	handler := server.NewHandler(state)
 
@@ -797,11 +938,25 @@ func startBackground(addr string, filesByGroup map[string][]string, patternsByGr
 		slog.Warn("failed to release process", "error", err)
 	}
 
-	if err := waitForReady(addr, 10*time.Second); err != nil {
+	status, err := waitForReady(addr, 10*time.Second)
+	if err != nil {
 		return fmt.Errorf("%w (pid %d)", err, pid)
 	}
 
 	fmt.Fprintf(os.Stderr, "mo: serving at http://%s (pid %d)\n", addr, pid)
+
+	if status != nil {
+		var deeplinks []deeplinkEntry
+		for _, g := range status.Groups {
+			for _, f := range g.Files {
+				deeplinks = append(deeplinks, deeplinkEntry{
+					URL:  buildDeeplink(addr, g.Name, f.ID),
+					Path: f.Path,
+				})
+			}
+		}
+		printDeeplinks(deeplinks)
+	}
 
 	openBrowser(addr)
 
@@ -821,20 +976,26 @@ func openBrowser(addr string) {
 	}
 }
 
-func waitForReady(addr string, timeout time.Duration) error {
+func waitForReady(addr string, timeout time.Duration) (*statusResponse, error) {
 	client := &http.Client{Timeout: 500 * time.Millisecond}
 	deadline := time.Now().Add(timeout)
 
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(fmt.Sprintf("http://%s/_/api/status", addr))
 		if err == nil {
-			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
-				return nil
+				var status statusResponse
+				if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+					resp.Body.Close()
+					return nil, nil //nolint:nilerr // decode failure is non-fatal; server is ready
+				}
+				resp.Body.Close()
+				return &status, nil
 			}
+			resp.Body.Close()
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	return fmt.Errorf("server did not become ready within %s (check log file for details)", timeout)
+	return nil, fmt.Errorf("server did not become ready within %s (check log file for details)", timeout)
 }

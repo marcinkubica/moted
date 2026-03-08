@@ -371,7 +371,7 @@ func (s *State) ShutdownCh() <-chan struct{} {
 // AddPattern registers a glob pattern for automatic file discovery.
 // It performs an initial expansion to add existing matches and starts
 // watching the base directory for new files.
-func (s *State) AddPattern(absPattern, groupName string) (int, error) {
+func (s *State) AddPattern(absPattern, groupName string) ([]*FileEntry, error) {
 	// Use forward slashes for doublestar
 	dsPattern := filepath.ToSlash(absPattern)
 	base, relPat := doublestar.SplitPattern(dsPattern)
@@ -379,10 +379,10 @@ func (s *State) AddPattern(absPattern, groupName string) (int, error) {
 
 	info, err := os.Stat(base)
 	if err != nil {
-		return 0, fmt.Errorf("base directory %q does not exist: %w", base, err)
+		return nil, fmt.Errorf("base directory %q does not exist: %w", base, err)
 	}
 	if !info.IsDir() {
-		return 0, fmt.Errorf("base path %q is not a directory", base)
+		return nil, fmt.Errorf("base path %q is not a directory", base)
 	}
 
 	gp, added := func() (*GlobPattern, bool) {
@@ -407,23 +407,24 @@ func (s *State) AddPattern(absPattern, groupName string) (int, error) {
 		return gp, true
 	}()
 	if !added {
-		return 0, nil
+		return nil, nil
 	}
 
 	// Initial expansion
 	matches, err := doublestar.Glob(os.DirFS(base), relPat, doublestar.WithFilesOnly())
 	if err != nil {
-		return 0, fmt.Errorf("glob expansion failed: %w", err)
+		return nil, fmt.Errorf("glob expansion failed: %w", err)
 	}
 
+	var entries []*FileEntry
 	for _, m := range matches {
 		abs := filepath.Join(base, m)
-		s.AddFile(abs, groupName)
+		entries = append(entries, s.AddFile(abs, groupName))
 	}
 
 	s.watchDirsForPattern(gp)
 
-	return len(matches), nil
+	return entries, nil
 }
 
 // Patterns returns a copy of all registered glob patterns.
@@ -830,8 +831,10 @@ type patternRequest struct {
 	Group   string `json:"group"`
 }
 
-type addPatternResponse struct {
-	Matched int `json:"matched"`
+// AddPatternResponse is the JSON response for the add-pattern endpoint.
+type AddPatternResponse struct {
+	Matched int          `json:"matched"`
+	Files   []*FileEntry `json:"files,omitempty"`
 }
 
 type fileContentResponse struct {
@@ -1079,14 +1082,14 @@ func handleAddPattern(state *State) http.HandlerFunc {
 			return
 		}
 
-		matched, err := state.AddPattern(req.Pattern, group)
+		entries, err := state.AddPattern(req.Pattern, group)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(addPatternResponse{Matched: matched}); err != nil {
+		if err := json.NewEncoder(w).Encode(AddPatternResponse{Matched: len(entries), Files: entries}); err != nil {
 			slog.Error("failed to encode response", "error", err)
 		}
 	}
