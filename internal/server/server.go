@@ -973,7 +973,7 @@ func handleAddFile(state *State) http.HandlerFunc {
 }
 
 func handleUploadFile(state *State) http.HandlerFunc {
-	const maxUploadSize = 10 << 20 // 10MB
+	const maxUploadSize = 12 << 20 // 12MB (headroom for JSON envelope around 10MB content)
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 		var req uploadFileRequest

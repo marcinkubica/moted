@@ -48,7 +48,7 @@ export function useFileDrop(activeGroup: string): { isDragging: boolean } {
 
       if (!e.dataTransfer) return;
 
-      const maxSize = 9 * 1024 * 1024; // 9MB, leaving headroom for JSON overhead (server limit is 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
       const fileList = e.dataTransfer.files;
       const uploads: Promise<void>[] = [];
       for (let i = 0; i < fileList.length; i++) {
