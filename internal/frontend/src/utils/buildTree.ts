@@ -12,8 +12,27 @@ export function buildTree(files: FileEntry[]): TreeNode {
     return { name: "", fullPath: "", children: [], file: null };
   }
 
+  // Separate uploaded files (no path) from filesystem files
+  const fsFiles = files.filter((f) => f.path !== "");
+  const uploadedFiles = files.filter((f) => f.path === "");
+
+  if (fsFiles.length === 0) {
+    // All files are uploaded — flat list at root
+    const root: TreeNode = { name: "", fullPath: "", children: [], file: null };
+    for (const file of uploadedFiles) {
+      root.children.push({
+        name: file.name,
+        fullPath: file.name,
+        children: [],
+        file,
+      });
+    }
+    sortTree(root);
+    return root;
+  }
+
   // Split each file path into segments once
-  const splitPaths = files.map((f) => f.path.split("/"));
+  const splitPaths = fsFiles.map((f) => f.path.split("/"));
   const dirSegmentsList = splitPaths.map((parts) => parts.slice(0, -1));
 
   // Find common prefix among directory parts
@@ -23,8 +42,8 @@ export function buildTree(files: FileEntry[]): TreeNode {
   // Build a trie from relative paths
   const root: TreeNode = { name: "", fullPath: "", children: [], file: null };
 
-  for (let fi = 0; fi < files.length; fi++) {
-    const file = files[fi];
+  for (let fi = 0; fi < fsFiles.length; fi++) {
+    const file = fsFiles[fi];
     const parts = splitPaths[fi];
     const dirParts = parts.slice(prefixLen, -1); // relative dir segments
     let current = root;
@@ -50,6 +69,16 @@ export function buildTree(files: FileEntry[]): TreeNode {
     current.children.push({
       name: file.name,
       fullPath: current.fullPath ? `${current.fullPath}/${file.name}` : file.name,
+      children: [],
+      file,
+    });
+  }
+
+  // Add uploaded files at root level
+  for (const file of uploadedFiles) {
+    root.children.push({
+      name: file.name,
+      fullPath: file.name,
       children: [],
       file,
     });

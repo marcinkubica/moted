@@ -236,7 +236,7 @@ func TestFilterValidRestoreData(t *testing.T) {
 			},
 		}
 
-		filesByGroup, _ := filterValidRestoreData(rd)
+		filesByGroup, _, _ := filterValidRestoreData(rd)
 		if len(filesByGroup["default"]) != 1 {
 			t.Fatalf("got %d files, want 1", len(filesByGroup["default"]))
 		}
@@ -252,7 +252,7 @@ func TestFilterValidRestoreData(t *testing.T) {
 			},
 		}
 
-		filesByGroup, _ := filterValidRestoreData(rd)
+		filesByGroup, _, _ := filterValidRestoreData(rd)
 		if _, ok := filesByGroup["docs"]; ok {
 			t.Fatal("group with all missing files should not appear in result")
 		}
@@ -266,7 +266,7 @@ func TestFilterValidRestoreData(t *testing.T) {
 			},
 		}
 
-		_, patternsByGroup := filterValidRestoreData(rd)
+		_, patternsByGroup, _ := filterValidRestoreData(rd)
 		if len(patternsByGroup["default"]) != 1 {
 			t.Fatalf("got %d patterns, want 1", len(patternsByGroup["default"]))
 		}
@@ -278,7 +278,7 @@ func TestFilterValidRestoreData(t *testing.T) {
 	t.Run("empty restore data returns empty results", func(t *testing.T) {
 		rd := &server.RestoreData{}
 
-		filesByGroup, patternsByGroup := filterValidRestoreData(rd)
+		filesByGroup, patternsByGroup, _ := filterValidRestoreData(rd)
 		if len(filesByGroup) != 0 {
 			t.Fatalf("got %d groups, want 0", len(filesByGroup))
 		}

@@ -228,11 +228,11 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	if restore != "" {
-		filesByGroup, patternsByGroup, err := loadRestoreData(restore)
+		filesByGroup, patternsByGroup, uploadedFiles, err := loadRestoreData(restore)
 		if err != nil {
 			return fmt.Errorf("failed to restore state: %w", err)
 		}
-		return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup)
+		return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup, uploadedFiles)
 	}
 
 	resolved, err := server.ResolveGroupName(target)
@@ -289,16 +289,18 @@ func run(cmd *cobra.Command, args []string) error {
 	if err := backup.Load(port, &rd); err != nil {
 		slog.Warn("failed to load backup", "error", err)
 	}
-	restoredFiles, restoredPatterns := filterValidRestoreData(&rd)
-	if len(restoredFiles) > 0 || len(restoredPatterns) > 0 {
+	restoredFiles, restoredPatterns, restoredUploads := filterValidRestoreData(&rd)
+	var uploadedFiles []server.UploadedFileData
+	if len(restoredFiles) > 0 || len(restoredPatterns) > 0 || len(restoredUploads) > 0 {
 		slog.Info("restoring session from backup", "port", port)
 		fmt.Fprintf(os.Stderr, "mo: restoring previous session for port %d\n", port)
 		filesByGroup = mergeGroups(restoredFiles, filesByGroup)
 		patternsByGroup = mergeGroups(restoredPatterns, patternsByGroup)
+		uploadedFiles = restoredUploads
 	}
 
 	if foreground {
-		return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup)
+		return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup, uploadedFiles)
 	}
 	return startBackground(addr, filesByGroup, patternsByGroup)
 }
@@ -329,7 +331,7 @@ func mergeGroups(base, additional map[string][]string) map[string][]string {
 }
 
 // filterValidRestoreData validates restore data by checking that file paths still exist.
-func filterValidRestoreData(rd *server.RestoreData) (map[string][]string, map[string][]string) {
+func filterValidRestoreData(rd *server.RestoreData) (map[string][]string, map[string][]string, []server.UploadedFileData) {
 	filesByGroup := make(map[string][]string)
 	for group, paths := range rd.Groups {
 		for _, p := range paths {
@@ -346,21 +348,21 @@ func filterValidRestoreData(rd *server.RestoreData) (map[string][]string, map[st
 		patternsByGroup[group] = patterns
 	}
 
-	return filesByGroup, patternsByGroup
+	return filesByGroup, patternsByGroup, rd.UploadedFiles
 }
 
-func loadRestoreData(path string) (map[string][]string, map[string][]string, error) {
+func loadRestoreData(path string) (map[string][]string, map[string][]string, []server.UploadedFileData, error) {
 	data, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	os.Remove(path)
 
 	var rd server.RestoreData
 	if err := json.Unmarshal(data, &rd); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return rd.Groups, rd.Patterns, nil
+	return rd.Groups, rd.Patterns, rd.UploadedFiles, nil
 }
 
 func hasGlobChars(s string) bool {
@@ -797,7 +799,7 @@ func discoverPorts() []int {
 	return ports
 }
 
-func startServer(ctx context.Context, addr string, filesByGroup map[string][]string, patternsByGroup map[string][]string) error {
+func startServer(ctx context.Context, addr string, filesByGroup map[string][]string, patternsByGroup map[string][]string, uploadedFiles []server.UploadedFileData) error {
 	sigCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -851,6 +853,10 @@ func startServer(ctx context.Context, addr string, filesByGroup map[string][]str
 	}
 
 	printDeeplinks(deeplinks)
+
+	for _, uf := range uploadedFiles {
+		state.AddUploadedFile(uf.Name, uf.Content, uf.Group)
+	}
 
 	handler := server.NewHandler(state)
 

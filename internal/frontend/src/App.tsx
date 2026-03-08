@@ -6,9 +6,11 @@ import { GroupDropdown } from "./components/GroupDropdown";
 import { ViewModeToggle, type ViewMode } from "./components/ViewModeToggle";
 import { SearchToggle } from "./components/SearchToggle";
 import { RestartButton } from "./components/RestartButton";
+import { DropOverlay } from "./components/DropOverlay";
 import { TocPanel } from "./components/TocPanel";
 import type { TocHeading } from "./components/TocPanel";
 import { useSSE } from "./hooks/useSSE";
+import { useFileDrop } from "./hooks/useFileDrop";
 import { useActiveHeading } from "./hooks/useActiveHeading";
 import type { Group } from "./hooks/useApi";
 import { fetchGroups, removeFile, reorderFiles } from "./hooks/useApi";
@@ -157,6 +159,8 @@ export function App() {
     },
   });
 
+  const { isDragging } = useFileDrop(activeGroup);
+
   const currentViewMode: ViewMode = viewModes[activeGroup] ?? "flat";
 
   useEffect(() => {
@@ -290,6 +294,7 @@ export function App() {
         )}
       </div>
       <RestartButton />
+      {isDragging && <DropOverlay />}
     </div>
   );
 }
