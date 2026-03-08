@@ -695,11 +695,28 @@ func (s *State) watchLoop() {
 
 func (s *State) notifyFileChanged(ids []string) {
 	for _, id := range ids {
+		data, err := marshalFileChangedEvent(id)
+		if err != nil {
+			slog.Error("notifyFileChanged", "err", err)
+			continue
+		}
 		s.sendEvent(sseEvent{
 			Name: eventFileChanged,
-			Data: fmt.Sprintf(`{"id":"%s"}`, id),
+			Data: data,
 		})
 	}
+}
+
+type fileChangedEvent struct {
+	ID string `json:"id"`
+}
+
+func marshalFileChangedEvent(id string) (string, error) {
+	b, err := json.Marshal(fileChangedEvent{ID: id})
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal file changed event: %w", err)
+	}
+	return string(b), nil
 }
 
 func (s *State) findIDsByPath(absPath string) []string {
