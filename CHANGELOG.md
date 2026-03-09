@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.16.2](https://github.com/k1LoW/mo/compare/v0.16.1...v0.16.2) - 2026-03-09
+### Fix bug 🐛
+- Remove stale files when a watched directory is moved by @110y in https://github.com/k1LoW/mo/pull/91
+
 ## [v0.16.1](https://github.com/k1LoW/mo/compare/v0.16.0...v0.16.1) - 2026-03-09
 ### New Features 🎉
 - feat: preserve scroll position across live-reload and server restart by @k1LoW in https://github.com/k1LoW/mo/pull/90
