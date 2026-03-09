@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -27,6 +27,7 @@ interface MarkdownViewerProps {
   revision: number;
   onFileOpened: (fileId: string) => void;
   onHeadingsChange: (headings: TocHeading[]) => void;
+  onContentRendered?: () => void;
   isTocOpen: boolean;
   onTocToggle: () => void;
   onRemoveFile: () => void;
@@ -374,7 +375,7 @@ function RawView({ content }: { content: string }) {
   );
 }
 
-export function MarkdownViewer({ fileId, fileName, revision, onFileOpened, onHeadingsChange, isTocOpen, onTocToggle, onRemoveFile }: MarkdownViewerProps) {
+export function MarkdownViewer({ fileId, fileName, revision, onFileOpened, onHeadingsChange, onContentRendered, isTocOpen, onTocToggle, onRemoveFile }: MarkdownViewerProps) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [isRawView, setIsRawView] = useState(false);
@@ -526,6 +527,17 @@ export function MarkdownViewer({ fileId, fileName, revision, onFileOpened, onHea
       onHeadingsChange(newHeadings);
     }
   }, [isRawView, renderedContent, onHeadingsChange]);
+
+  const onContentRenderedRef = useRef(onContentRendered);
+  useLayoutEffect(() => {
+    onContentRenderedRef.current = onContentRendered;
+  });
+
+  useLayoutEffect(() => {
+    if (!loading) {
+      onContentRenderedRef.current?.();
+    }
+  }, [loading, renderedContent]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-50 text-gh-text-secondary text-sm">Loading...</div>;
