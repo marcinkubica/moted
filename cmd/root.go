@@ -24,6 +24,7 @@ import (
 	"github.com/k1LoW/mo/internal/logfile"
 	"github.com/k1LoW/mo/internal/server"
 	"github.com/k1LoW/mo/version"
+	"github.com/muesli/termenv"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )
@@ -175,6 +176,25 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	addr := fmt.Sprintf("%s:%d", bind, port)
+
+	if bind != "localhost" && bind != "127.0.0.1" && bind != "::1" {
+		o := termenv.NewOutput(os.Stderr)
+		c := func(s string) termenv.Style { return o.String(s).Foreground(o.Color("208")) }
+		fmt.Fprintln(os.Stderr, c("SECURITY WARNING:").Bold(),
+			c(fmt.Sprintf("Binding to %s instead of localhost. mo has no authentication -- remote clients can:", bind)))
+		fmt.Fprintln(os.Stderr, c("  - Read any file accessible by this user"))
+		fmt.Fprintln(os.Stderr, c("  - Browse the filesystem via glob patterns"))
+		fmt.Fprintln(os.Stderr, c("  - Shut down or restart the server"))
+		fmt.Fprintf(os.Stderr, "Continue? [y/N] ")
+		scanner := bufio.NewScanner(os.Stdin)
+		if !scanner.Scan() {
+			return nil
+		}
+		ans := strings.ToLower(strings.TrimSpace(scanner.Text()))
+		if ans != "y" && ans != "yes" {
+			return nil
+		}
+	}
 
 	if clearBackup {
 		if !backup.Exists(port) {
