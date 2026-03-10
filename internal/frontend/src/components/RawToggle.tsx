@@ -6,8 +6,11 @@ interface RawToggleProps {
 export function RawToggle({ isRaw, onToggle }: RawToggleProps) {
   return (
     <button
+      type="button"
       className="flex items-center justify-center bg-transparent border border-gh-border rounded-md p-1.5 text-gh-text-secondary cursor-pointer transition-colors duration-150 hover:bg-gh-bg-hover"
       onClick={onToggle}
+      aria-label="Raw view"
+      aria-pressed={isRaw}
       title={isRaw ? "Show rendered" : "Show raw"}
     >
       {isRaw ? (

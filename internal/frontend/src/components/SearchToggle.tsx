@@ -6,10 +6,13 @@ interface SearchToggleProps {
 export function SearchToggle({ isOpen, onToggle }: SearchToggleProps) {
   return (
     <button
+      type="button"
       className={`flex items-center justify-center bg-transparent border border-gh-border rounded-md p-1.5 cursor-pointer transition-colors duration-150 hover:bg-gh-bg-hover ${
         isOpen ? "text-gh-header-text bg-gh-bg-hover" : "text-gh-header-text"
       }`}
       onClick={onToggle}
+      aria-label="Search"
+      aria-expanded={isOpen}
       title={isOpen ? "Close search" : "Search files"}
     >
       <svg

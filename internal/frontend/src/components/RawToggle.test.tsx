@@ -14,6 +14,18 @@ describe("RawToggle", () => {
     expect(screen.getByTitle("Show rendered")).toBeInTheDocument();
   });
 
+  it("has aria-pressed false when not raw", () => {
+    render(<RawToggle isRaw={false} onToggle={() => {}} />);
+    const button = screen.getByRole("button", { name: "Raw view" });
+    expect(button).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("has aria-pressed true when raw", () => {
+    render(<RawToggle isRaw={true} onToggle={() => {}} />);
+    const button = screen.getByRole("button", { name: "Raw view" });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("calls onToggle when clicked", async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();

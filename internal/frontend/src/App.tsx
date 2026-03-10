@@ -266,8 +266,11 @@ export function App() {
     <div className="flex flex-col h-full font-sans text-gh-text bg-gh-bg">
       <header className="h-12 shrink-0 flex items-center gap-3 px-4 bg-gh-header-bg text-gh-header-text border-b border-gh-header-border">
         <button
+          type="button"
           className="flex items-center justify-center bg-transparent border border-gh-border rounded-md p-1.5 cursor-pointer text-gh-header-text transition-colors duration-150 hover:bg-gh-bg-hover"
           onClick={() => setSidebarOpen((v) => !v)}
+          aria-label="Sidebar"
+          aria-expanded={sidebarOpen}
           title="Toggle sidebar"
         >
           <svg
