@@ -49,8 +49,9 @@ var (
 	statusServer    bool
 	watchPatterns   []string
 	unwatchPatterns []string
-	clearBackup     bool
-	jsonOutput      bool
+	clearBackup      bool
+	jsonOutput       bool
+	skipBindConfirm  bool
 )
 
 var rootCmd = &cobra.Command{
@@ -168,6 +169,7 @@ func init() {
 	rootCmd.Flags().StringArrayVar(&unwatchPatterns, "unwatch", nil, "Remove a watched glob pattern (repeatable)")
 	rootCmd.Flags().BoolVar(&clearBackup, "clear", false, "Clear saved session for the specified port")
 	rootCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output structured data as JSON to stdout")
+	rootCmd.Flags().BoolVar(&skipBindConfirm, "skip-bind-address-confirmation", false, "Skip the security confirmation prompt for non-loopback bind addresses")
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -312,7 +314,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Prompt only when actually starting a new server (not adding to existing one).
-	if !isLoopbackBind(bind) {
+	if !isLoopbackBind(bind) && !skipBindConfirm {
 		o := termenv.NewOutput(os.Stderr)
 		c := func(s string) termenv.Style { return o.String(s).Foreground(o.Color("208")) }
 		fmt.Fprintln(os.Stderr, c("SECURITY WARNING:").Bold(),
