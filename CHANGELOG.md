@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.17.0](https://github.com/k1LoW/mo/compare/v0.16.3...v0.17.0) - 2026-03-10
+### New Features 🎉
+- Proposal: add --bind flag to specify listen address by @110y in https://github.com/k1LoW/mo/pull/96
+- feat: add security warning with confirmation prompt for non-localhost --bind by @k1LoW in https://github.com/k1LoW/mo/pull/98
+
 ## [v0.16.3](https://github.com/k1LoW/mo/compare/v0.16.2...v0.16.3) - 2026-03-10
 ### Fix bug 🐛
 - fix: render Mermaid charts using actual container width by @k1LoW in https://github.com/k1LoW/mo/pull/95
