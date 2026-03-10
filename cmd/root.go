@@ -175,6 +175,7 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	bind = strings.Trim(bind, "[]")
 	addr := net.JoinHostPort(bind, strconv.Itoa(port))
 
 	if clearBackup {
@@ -306,9 +307,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Prompt only when actually starting a new server (not adding to existing one).
-	// Skip when --restore is set (i.e. restart via spawnNewProcess),
-	// because the user already confirmed when they first started the server.
-	if !isLoopbackBind(bind) && restore == "" {
+	if !isLoopbackBind(bind) {
 		o := termenv.NewOutput(os.Stderr)
 		c := func(s string) termenv.Style { return o.String(s).Foreground(o.Color("208")) }
 		fmt.Fprintln(os.Stderr, c("SECURITY WARNING:").Bold(),
