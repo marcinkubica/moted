@@ -14,6 +14,18 @@ describe("WidthToggle", () => {
     expect(screen.getByTitle("Narrow view")).toBeInTheDocument();
   });
 
+  it("has aria-pressed false when narrow", () => {
+    render(<WidthToggle isWide={false} onToggle={() => {}} />);
+    const button = screen.getByRole("button", { name: "Wide layout" });
+    expect(button).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("has aria-pressed true when wide", () => {
+    render(<WidthToggle isWide={true} onToggle={() => {}} />);
+    const button = screen.getByRole("button", { name: "Wide layout" });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("calls onToggle when clicked", async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();

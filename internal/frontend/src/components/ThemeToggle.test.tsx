@@ -39,4 +39,18 @@ describe("ThemeToggle", () => {
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
     expect(localStorage.getItem("mo-theme")).toBe("light");
   });
+
+  it("has aria-pressed true in dark mode", () => {
+    localStorage.setItem("mo-theme", "dark");
+    render(<ThemeToggle />);
+    const button = screen.getByRole("button", { name: "Dark mode" });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("has aria-pressed false in light mode", () => {
+    localStorage.setItem("mo-theme", "light");
+    render(<ThemeToggle />);
+    const button = screen.getByRole("button", { name: "Dark mode" });
+    expect(button).toHaveAttribute("aria-pressed", "false");
+  });
 });

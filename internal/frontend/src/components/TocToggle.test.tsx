@@ -14,6 +14,18 @@ describe("TocToggle", () => {
     expect(screen.getByTitle("Hide table of contents")).toBeInTheDocument();
   });
 
+  it("has correct aria attributes when closed", () => {
+    render(<TocToggle isTocOpen={false} onToggle={() => {}} />);
+    const button = screen.getByRole("button", { name: "Table of contents" });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("has correct aria attributes when open", () => {
+    render(<TocToggle isTocOpen={true} onToggle={() => {}} />);
+    const button = screen.getByRole("button", { name: "Table of contents" });
+    expect(button).toHaveAttribute("aria-expanded", "true");
+  });
+
   it("calls onToggle when clicked", async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();
