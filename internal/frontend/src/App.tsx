@@ -269,8 +269,8 @@ export function App() {
           type="button"
           className="flex items-center justify-center bg-transparent border border-gh-border rounded-md p-1.5 cursor-pointer text-gh-header-text transition-colors duration-150 hover:bg-gh-bg-hover"
           onClick={() => setSidebarOpen((v) => !v)}
-          aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-          aria-pressed={sidebarOpen}
+          aria-label="Sidebar"
+          aria-expanded={sidebarOpen}
           title="Toggle sidebar"
         >
           <svg

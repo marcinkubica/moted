@@ -9,8 +9,8 @@ export function TocToggle({ isTocOpen, onToggle }: TocToggleProps) {
       type="button"
       className="flex items-center justify-center bg-transparent border border-gh-border rounded-md p-1.5 text-gh-text-secondary cursor-pointer transition-colors duration-150 hover:bg-gh-bg-hover"
       onClick={onToggle}
-      aria-label={isTocOpen ? "Hide table of contents" : "Show table of contents"}
-      aria-pressed={isTocOpen}
+      aria-label="Table of contents"
+      aria-expanded={isTocOpen}
       title={isTocOpen ? "Hide table of contents" : "Show table of contents"}
     >
       <svg

@@ -11,8 +11,8 @@ export function SearchToggle({ isOpen, onToggle }: SearchToggleProps) {
         isOpen ? "text-gh-header-text bg-gh-bg-hover" : "text-gh-header-text"
       }`}
       onClick={onToggle}
-      aria-label={isOpen ? "Close search" : "Search files"}
-      aria-pressed={isOpen}
+      aria-label="Search"
+      aria-expanded={isOpen}
       title={isOpen ? "Close search" : "Search files"}
     >
       <svg
