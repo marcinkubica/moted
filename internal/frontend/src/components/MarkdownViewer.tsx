@@ -495,13 +495,13 @@ export function MarkdownViewer({
     [fileId, handleLinkClick],
   );
 
+  const isMarkdown = isMarkdownFile(fileName);
+  const codeLanguage = isMarkdown ? null : detectLanguage(fileName);
+
   const parsed = useMemo(
     () => (isMarkdown && !isRawView ? parseFrontmatter(content) : null),
     [content, isRawView, isMarkdown],
   );
-
-  const isMarkdown = isMarkdownFile(fileName);
-  const codeLanguage = isMarkdown ? null : detectLanguage(fileName);
 
   const renderedContent = useMemo(() => {
     if (!isMarkdown) {
