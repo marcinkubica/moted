@@ -72,6 +72,7 @@ type State struct {
 	mu          sync.RWMutex
 	groups      map[string]*Group
 	subscribers map[chan sseEvent]struct{}
+	subMu       sync.RWMutex
 	watcher     *fsnotify.Watcher
 	restartCh   chan string
 	shutdownCh  chan struct{}
@@ -432,8 +433,8 @@ func (s *State) RemoveFile(id string) bool {
 }
 
 func (s *State) Subscribe() chan sseEvent {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.subMu.Lock()
+	defer s.subMu.Unlock()
 
 	ch := make(chan sseEvent, 16)
 	s.subscribers[ch] = struct{}{}
@@ -441,8 +442,8 @@ func (s *State) Subscribe() chan sseEvent {
 }
 
 func (s *State) Unsubscribe(ch chan sseEvent) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.subMu.Lock()
+	defer s.subMu.Unlock()
 
 	if _, ok := s.subscribers[ch]; ok {
 		delete(s.subscribers, ch)
@@ -456,10 +457,12 @@ func (s *State) CloseAllSubscribers() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	s.subMu.Lock()
 	for ch := range s.subscribers {
 		close(ch)
 		delete(s.subscribers, ch)
 	}
+	s.subMu.Unlock()
 
 	if s.watcher != nil {
 		s.watcher.Close()
@@ -928,6 +931,9 @@ func (s *State) handleDirMove(dirPath string) {
 }
 
 func (s *State) sendEvent(e sseEvent) {
+	s.subMu.RLock()
+	defer s.subMu.RUnlock()
+
 	for ch := range s.subscribers {
 		select {
 		case ch <- e:

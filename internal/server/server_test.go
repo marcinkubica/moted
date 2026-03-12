@@ -923,6 +923,40 @@ func TestScheduleFileChanged_DebouncesDuplicateEvents(t *testing.T) {
 	}
 }
 
+func TestSendEvent_ConcurrentWithUnsubscribeDoesNotPanic(t *testing.T) {
+	s := newTestState(t)
+	ch := s.Subscribe()
+
+	done := make(chan struct{})
+	panicCh := make(chan any, 1)
+
+	go func() {
+		defer close(done)
+		defer func() {
+			if r := recover(); r != nil {
+				panicCh <- r
+			}
+		}()
+		for range 100 {
+			s.sendEvent(sseEvent{Name: eventFileChanged, Data: "{}"})
+		}
+	}()
+
+	for range 100 {
+		s.Unsubscribe(ch)
+		ch = s.Subscribe()
+	}
+	s.Unsubscribe(ch)
+
+	<-done
+
+	select {
+	case r := <-panicCh:
+		t.Fatalf("sendEvent panicked during concurrent unsubscribe: %v", r)
+	default:
+	}
+}
+
 // flushRecorder implements http.ResponseWriter and http.Flusher,
 // writing output to an io.Writer for streaming tests.
 type flushRecorder struct {
