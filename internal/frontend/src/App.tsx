@@ -124,7 +124,7 @@ export function App() {
 
       setGroups(data);
 
-      if (added.length > 0 && !wasEmpty) {
+      if (added.length > 0 && !wasEmpty && !version?.noNewFileAutoSelect) {
         // Only auto-select if the new file belongs to the current active group
         setActiveGroup((currentGroup) => {
           const group = data.find((g) => g.name === currentGroup);
@@ -141,7 +141,7 @@ export function App() {
     } catch {
       // server may not be ready yet
     }
-  }, []);
+  }, [version]);
 
   // Initial data fetch (setState inside .then() is async, not flagged by linter)
   useEffect(() => {

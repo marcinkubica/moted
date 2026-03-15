@@ -400,7 +400,7 @@ func TestHandleVersion(t *testing.T) {
 
 	t.Run("reflects Configure flags", func(t *testing.T) {
 		s := newTestState(t)
-		s.Configure(true, true, true, true)
+		s.Configure(true, true, true, true, true)
 		handler := NewHandler(s)
 		req := httptest.NewRequest("GET", "/_/api/version", nil)
 		rec := httptest.NewRecorder()
@@ -419,6 +419,9 @@ func TestHandleVersion(t *testing.T) {
 		}
 		if resp["noFileMove"] != true {
 			t.Errorf("noFileMove = %v, want true", resp["noFileMove"])
+		}
+		if resp["noNewFileAutoSelect"] != true {
+			t.Errorf("noNewFileAutoSelect = %v, want true", resp["noNewFileAutoSelect"])
 		}
 		if resp["shareable"] != true {
 			t.Errorf("shareable = %v, want true", resp["shareable"])
@@ -448,7 +451,7 @@ func TestHandleRemoveFile_NoDelete(t *testing.T) {
 
 	t.Run("returns 403 when noDelete is true", func(t *testing.T) {
 		s := newTestState(t)
-		s.Configure(false, true, false, false)
+		s.Configure(false, true, false, false, false)
 		s.groups[DefaultGroup] = &Group{
 			Name:  DefaultGroup,
 			Files: []*FileEntry{{ID: idA, Name: "a.md", Path: "/a.md"}},
@@ -496,7 +499,7 @@ func TestHandleMoveFile_NoFileMove(t *testing.T) {
 
 	t.Run("returns 403 when noFileMove is true", func(t *testing.T) {
 		s := newTestState(t)
-		s.Configure(false, false, true, false)
+		s.Configure(false, false, true, false, false)
 		s.groups[DefaultGroup] = &Group{
 			Name:  DefaultGroup,
 			Files: []*FileEntry{{ID: idA, Name: "a.md", Path: "/a.md"}},
@@ -527,7 +530,7 @@ func TestHandleRestart_NoRestart(t *testing.T) {
 
 	t.Run("returns 403 when noRestart is true", func(t *testing.T) {
 		s := newTestState(t)
-		s.Configure(true, false, false, false)
+		s.Configure(true, false, false, false, false)
 		s.groups[DefaultGroup] = &Group{
 			Name:  DefaultGroup,
 			Files: []*FileEntry{{ID: idA, Name: "a.md", Path: "/a.md"}},

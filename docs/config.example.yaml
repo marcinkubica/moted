@@ -19,6 +19,10 @@ no-open: true
 ## shorthand for no-restart + no-delete + no-file-move
 read-only: true
 
+## do not auto-select newly added files in the browser
+## prevents the UI from jumping to new files when they are added
+newfile-no-autoselect: true
+
 ## expose document links in the address bar
 shareable: true
 
@@ -31,6 +35,7 @@ groups:
   - name: docs
     watch:
       - docs/**/*.md
-
-
+  - name: watchtest
+    watch:
+      - /tmp/watchtest/**/*.md
 

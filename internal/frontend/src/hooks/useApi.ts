@@ -21,6 +21,7 @@ export interface VersionInfo {
   noRestart?: boolean;
   noDelete?: boolean;
   noFileMove?: boolean;
+  noNewFileAutoSelect?: boolean;
   shareable?: boolean;
 }
 
