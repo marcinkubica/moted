@@ -374,6 +374,125 @@ func TestHandleRestart(t *testing.T) {
 	})
 }
 
+func TestHandleVersion(t *testing.T) {
+	t.Run("returns version with flags false by default", func(t *testing.T) {
+		s := newTestState(t)
+		handler := NewHandler(s)
+		req := httptest.NewRequest("GET", "/_/api/version", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusOK)
+		}
+		var resp map[string]any
+		if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		if resp["noRestart"] != false {
+			t.Errorf("noRestart = %v, want false", resp["noRestart"])
+		}
+		if resp["noDelete"] != false {
+			t.Errorf("noDelete = %v, want false", resp["noDelete"])
+		}
+	})
+
+	t.Run("reflects Configure flags", func(t *testing.T) {
+		s := newTestState(t)
+		s.Configure(true, true)
+		handler := NewHandler(s)
+		req := httptest.NewRequest("GET", "/_/api/version", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		var resp map[string]any
+		if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		if resp["noRestart"] != true {
+			t.Errorf("noRestart = %v, want true", resp["noRestart"])
+		}
+		if resp["noDelete"] != true {
+			t.Errorf("noDelete = %v, want true", resp["noDelete"])
+		}
+	})
+}
+
+func TestHandleRemoveFile_NoDelete(t *testing.T) {
+	idA := testIDa
+
+	t.Run("returns 204 when noDelete is false", func(t *testing.T) {
+		s := newTestState(t)
+		s.groups[DefaultGroup] = &Group{
+			Name:  DefaultGroup,
+			Files: []*FileEntry{{ID: idA, Name: "a.md", Path: "/a.md"}},
+		}
+		handler := NewHandler(s)
+		req := httptest.NewRequest("DELETE", "/_/api/files/"+string(idA), nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNoContent {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusNoContent)
+		}
+	})
+
+	t.Run("returns 403 when noDelete is true", func(t *testing.T) {
+		s := newTestState(t)
+		s.Configure(false, true)
+		s.groups[DefaultGroup] = &Group{
+			Name:  DefaultGroup,
+			Files: []*FileEntry{{ID: idA, Name: "a.md", Path: "/a.md"}},
+		}
+		handler := NewHandler(s)
+		req := httptest.NewRequest("DELETE", "/_/api/files/"+string(idA), nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusForbidden)
+		}
+		// File should still be present
+		s.mu.RLock()
+		count := len(s.groups[DefaultGroup].Files)
+		s.mu.RUnlock()
+		if count != 1 {
+			t.Errorf("file was removed despite noDelete; got %d files, want 1", count)
+		}
+	})
+}
+
+func TestHandleRestart_NoRestart(t *testing.T) {
+	idA := testIDa
+
+	t.Run("returns 403 when noRestart is true", func(t *testing.T) {
+		s := newTestState(t)
+		s.Configure(true, false)
+		s.groups[DefaultGroup] = &Group{
+			Name:  DefaultGroup,
+			Files: []*FileEntry{{ID: idA, Name: "a.md", Path: "/a.md"}},
+		}
+		handler := NewHandler(s)
+		req := httptest.NewRequest("POST", "/_/api/restart", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusForbidden)
+		}
+		select {
+		case <-s.RestartCh():
+			t.Fatal("restartCh should not have received a signal")
+		default:
+		}
+	})
+}
+
 func TestHandleReorderFiles(t *testing.T) {
 	idA := testIDa
 	idB := testIDb
