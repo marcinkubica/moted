@@ -70,6 +70,8 @@ export function App() {
   const [initialFileId, setInitialFileId] = useState<string | null>(() => {
     const fromUrl = parseFileIdFromSearch(window.location.search);
     if (fromUrl) return fromUrl;
+    // If ?filename= is present, don't restore from sessionStorage — let filename resolution handle it
+    if (parseFilenameFromSearch(window.location.search)) return null;
     // Restore active file from scroll context saved before reload
     try {
       const stored = sessionStorage.getItem(SCROLL_SESSION_KEY);

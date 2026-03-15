@@ -1,7 +1,7 @@
----
+
 # Server
 bind: localhost
-port: 6275
+port: 8080
 foreground: true
 quiet: true
 no-open: true
@@ -20,7 +20,7 @@ no-open: true
 read-only: true
 
 ## do not auto-select newly added files in the browser
-## prevents the UI from jumping to new files when they are added
+## prevents the UI from forcibly opening to new files when they are added
 newfile-no-autoselect: true
 
 ## expose document links in the address bar
@@ -30,16 +30,16 @@ shareable: true
 ## falls back to hash ID if filenames are not unique within a group
 true-filenames: true
 
-#Groups
+# Groups
 groups:
   - name: default
     watch:
       - ./**/*.md
       - /tmp/**/*.md
+    files:
+      - README.md
+      - CHANGELOG.md
   - name: docs
     watch:
       - docs/**/*.md
-  - name: watchtest
-    watch:
-      - /tmp/watchtest/**/*.md
 
