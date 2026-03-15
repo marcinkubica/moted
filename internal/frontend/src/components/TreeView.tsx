@@ -1,8 +1,24 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from "react";
 import type { FileEntry, Group } from "../hooks/useApi";
 import { buildTree, type TreeNode } from "../utils/buildTree";
 import { FileContextMenu } from "./FileContextMenu";
 import { FileIcon } from "./FileIcon";
+
+export interface TreeViewHandle {
+  expandAll: () => void;
+  collapseAll: () => void;
+}
+
+function collectDirPaths(nodes: TreeNode[]): string[] {
+  const paths: string[] = [];
+  for (const node of nodes) {
+    if (node.file == null) {
+      paths.push(node.fullPath);
+      paths.push(...collectDirPaths(node.children));
+    }
+  }
+  return paths;
+}
 
 const COLLAPSED_STORAGE_KEY = "mo-sidebar-tree-collapsed";
 
@@ -33,7 +49,7 @@ interface TreeViewProps {
   menuRef: React.RefObject<HTMLDivElement | null>;
 }
 
-export function TreeView({
+export const TreeView = forwardRef<TreeViewHandle, TreeViewProps>(function TreeView({
   files,
   activeGroup,
   activeFileId,
@@ -45,7 +61,7 @@ export function TreeView({
   onMoveToGroup,
   onRemove,
   menuRef,
-}: TreeViewProps) {
+}, ref) {
   const tree = useMemo(() => buildTree(files), [files]);
   const [prevGroup, setPrevGroup] = useState(activeGroup);
   const [collapsedPaths, setCollapsedPaths] = useState<Set<string>>(() =>
@@ -67,6 +83,11 @@ export function TreeView({
       /* ignore */
     }
   }, [collapsedPaths, activeGroup]);
+
+  useImperativeHandle(ref, () => ({
+    expandAll: () => setCollapsedPaths(new Set()),
+    collapseAll: () => setCollapsedPaths(new Set(collectDirPaths(tree.children))),
+  }), [tree]);
 
   const handleToggleCollapse = useCallback((path: string) => {
     setCollapsedPaths((prev) => {
@@ -102,7 +123,7 @@ export function TreeView({
       ))}
     </>
   );
-}
+});
 
 interface TreeNodeItemProps {
   node: TreeNode;

@@ -18,7 +18,7 @@ import type { FileEntry, Group } from "../hooks/useApi";
 import { removeFile, moveFile } from "../hooks/useApi";
 import { buildFileUrl } from "../utils/groups";
 import type { ViewMode } from "./ViewModeToggle";
-import { TreeView } from "./TreeView";
+import { TreeView, type TreeViewHandle } from "./TreeView";
 import { FileContextMenu } from "./FileContextMenu";
 import { FileIcon } from "./FileIcon";
 
@@ -116,6 +116,7 @@ interface SidebarProps {
   viewMode: ViewMode;
   searchQuery: string | null;
   onSearchQueryChange: (query: string | null) => void;
+  treeViewRef?: React.Ref<TreeViewHandle>;
 }
 
 export function Sidebar({
@@ -127,6 +128,7 @@ export function Sidebar({
   viewMode,
   searchQuery,
   onSearchQueryChange,
+  treeViewRef,
 }: SidebarProps) {
   const allFiles = useMemo(() => {
     const currentGroup = groups.find((g) => g.name === activeGroup);
@@ -280,6 +282,7 @@ export function Sidebar({
       <nav className="flex flex-col pb-1">
         {viewMode === "tree" ? (
           <TreeView
+            ref={treeViewRef}
             files={files}
             activeGroup={activeGroup}
             activeFileId={activeFileId}
