@@ -208,7 +208,7 @@ func (s *State) AddFile(absPath, groupName string) (*FileEntry, error) {
 		}
 	}
 
-	slog.Info("file added", "path", absPath, "group", groupName, "id", entry.ID)
+	slog.Debug("file added", "path", absPath, "group", groupName, "id", entry.ID)
 
 	s.sendEvent(sseEvent{Name: eventUpdate, Data: "{}"})
 	return entry, nil
@@ -246,7 +246,7 @@ func (s *State) AddUploadedFile(name, content, groupName string) *FileEntry {
 	}
 	g.Files = append(g.Files, entry)
 
-	slog.Info("uploaded file added", "name", name, "group", groupName, "id", entry.ID)
+	slog.Debug("uploaded file added", "name", name, "group", groupName, "id", entry.ID)
 
 	s.sendEvent(sseEvent{Name: eventUpdate, Data: "{}"})
 	return entry
