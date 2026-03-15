@@ -6,6 +6,7 @@ import { WidthToggle } from "./components/WidthToggle";
 import { GroupDropdown } from "./components/GroupDropdown";
 import { ViewModeToggle, type ViewMode } from "./components/ViewModeToggle";
 import { SearchToggle } from "./components/SearchToggle";
+import { TimestampToggle } from "./components/TimestampToggle";
 import { TreeCollapseToggle } from "./components/TreeCollapseToggle";
 import type { TreeViewHandle } from "./components/TreeView";
 import { RestartButton } from "./components/RestartButton";
@@ -23,6 +24,7 @@ import { isMarkdownFile } from "./utils/filetype";
 
 const VIEWMODE_STORAGE_KEY = "mo-sidebar-viewmode";
 const WIDTH_STORAGE_KEY = "mo-layout-width";
+const TIMESTAMPS_STORAGE_KEY = "mo-show-timestamps";
 
 export function App() {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -35,6 +37,13 @@ export function App() {
   const [headings, setHeadings] = useState<TocHeading[]>([]);
   const [contentRevision, setContentRevision] = useState(0);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
+  const [showTimestamps, setShowTimestamps] = useState(() => {
+    try {
+      return localStorage.getItem(TIMESTAMPS_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
   const [viewModes, setViewModes] = useState<Record<string, ViewMode>>(() => {
     try {
       const stored = localStorage.getItem(VIEWMODE_STORAGE_KEY);
@@ -228,6 +237,14 @@ export function App() {
     }
   }, [isWide]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(TIMESTAMPS_STORAGE_KEY, showTimestamps ? "true" : "false");
+    } catch {
+      /* ignore */
+    }
+  }, [showTimestamps]);
+
   const handleViewModeToggle = useCallback(() => {
     const current = viewModes[activeGroup] ?? "flat";
     const nextMode: ViewMode = current === "flat" ? "tree" : "flat";
@@ -334,6 +351,7 @@ export function App() {
           />
         )}
         <SearchToggle isOpen={searchQuery != null} onToggle={handleSearchToggle} />
+        <TimestampToggle isActive={showTimestamps} onToggle={() => setShowTimestamps((v) => !v)} />
         <div className="ml-auto flex items-center gap-2">
           <WidthToggle isWide={isWide} onToggle={() => setIsWide((v) => !v)} />
           <ThemeToggle />
@@ -353,6 +371,7 @@ export function App() {
             treeViewRef={treeViewRef}
             noDelete={version?.noDelete}
             noFileMove={version?.noFileMove}
+            showTimestamps={showTimestamps}
           />
         )}
         <main className="flex-1 flex flex-col overflow-hidden">

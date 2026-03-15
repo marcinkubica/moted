@@ -3,6 +3,7 @@ export interface FileEntry {
   id: string;
   path: string;
   uploaded?: boolean;
+  modTime?: string;
 }
 
 export interface Group {

@@ -30,6 +30,7 @@ type FileEntry struct {
 	ID       string `json:"id"`
 	Path     string `json:"path"`
 	Uploaded bool   `json:"uploaded,omitempty"`
+	ModTime  string `json:"modTime,omitempty"`
 	content  string // in-memory content for uploaded files
 }
 
@@ -1251,6 +1252,20 @@ func handleReorderFiles(state *State) http.HandlerFunc {
 func handleGroups(state *State) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		groups := state.Groups()
+		// Enrich file entries with mod times without mutating shared state.
+		for i := range groups {
+			enriched := make([]*FileEntry, len(groups[i].Files))
+			for j, f := range groups[i].Files {
+				cp := *f
+				if !cp.Uploaded && cp.Path != "" {
+					if info, err := os.Stat(cp.Path); err == nil {
+						cp.ModTime = info.ModTime().UTC().Format(time.RFC3339)
+					}
+				}
+				enriched[j] = &cp
+			}
+			groups[i].Files = enriched
+		}
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(groups); err != nil {
 			slog.Error("failed to encode response", "error", err)

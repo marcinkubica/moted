@@ -652,6 +652,50 @@ func TestHandleReorderFiles(t *testing.T) {
 	})
 }
 
+func TestHandleGroups_ModTime(t *testing.T) {
+	dir := t.TempDir()
+	filePath := filepath.Join(dir, "a.md")
+	os.WriteFile(filePath, []byte("# A"), 0o600) //nolint:errcheck
+
+	s := newTestState(t)
+	s.AddFile(filePath, DefaultGroup) //nolint:errcheck
+
+	handler := NewHandler(s)
+	req := httptest.NewRequest("GET", "/_/api/groups", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got status %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	var groups []struct {
+		Name  string `json:"name"`
+		Files []struct {
+			ID      string `json:"id"`
+			ModTime string `json:"modTime"`
+		} `json:"files"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&groups); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+
+	if len(groups) == 0 || len(groups[0].Files) == 0 {
+		t.Fatal("expected at least one group with one file")
+	}
+
+	modTime := groups[0].Files[0].ModTime
+	if modTime == "" {
+		t.Error("modTime should be set for a disk file")
+	}
+
+	// Verify it's valid RFC3339
+	if _, err := time.Parse(time.RFC3339, modTime); err != nil {
+		t.Errorf("modTime %q is not valid RFC3339: %v", modTime, err)
+	}
+}
+
 func TestAddPattern_InitialExpansion(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "a.md"), []byte("# A"), 0o600)   //nolint:errcheck

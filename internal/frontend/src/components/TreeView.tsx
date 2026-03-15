@@ -3,6 +3,7 @@ import type { FileEntry, Group } from "../hooks/useApi";
 import { buildTree, type TreeNode } from "../utils/buildTree";
 import { FileContextMenu } from "./FileContextMenu";
 import { FileIcon } from "./FileIcon";
+import { formatRelativeTime } from "../utils/time";
 
 export interface TreeViewHandle {
   expandAll: () => void;
@@ -48,6 +49,7 @@ interface TreeViewProps {
   onRemove: (id: string) => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
   noDelete?: boolean;
+  showTimestamps?: boolean;
 }
 
 export const TreeView = forwardRef<TreeViewHandle, TreeViewProps>(function TreeView({
@@ -63,6 +65,7 @@ export const TreeView = forwardRef<TreeViewHandle, TreeViewProps>(function TreeV
   onRemove,
   menuRef,
   noDelete,
+  showTimestamps,
 }, ref) {
   const tree = useMemo(() => buildTree(files), [files]);
   const [prevGroup, setPrevGroup] = useState(activeGroup);
@@ -122,6 +125,7 @@ export const TreeView = forwardRef<TreeViewHandle, TreeViewProps>(function TreeV
           collapsedPaths={collapsedPaths}
           onToggleCollapse={handleToggleCollapse}
           noDelete={noDelete}
+          showTimestamps={showTimestamps}
         />
       ))}
     </>
@@ -143,6 +147,7 @@ interface TreeNodeItemProps {
   collapsedPaths: Set<string>;
   onToggleCollapse: (path: string) => void;
   noDelete?: boolean;
+  showTimestamps?: boolean;
 }
 
 function TreeNodeItem({
@@ -160,6 +165,7 @@ function TreeNodeItem({
   collapsedPaths,
   onToggleCollapse,
   noDelete,
+  showTimestamps,
 }: TreeNodeItemProps) {
   if (node.file != null) {
     return (
@@ -177,6 +183,7 @@ function TreeNodeItem({
         onRemove={onRemove}
         menuRef={menuRef}
         noDelete={noDelete}
+        showTimestamps={showTimestamps}
       />
     );
   }
@@ -226,6 +233,7 @@ function TreeNodeItem({
             collapsedPaths={collapsedPaths}
             onToggleCollapse={onToggleCollapse}
             noDelete={noDelete}
+            showTimestamps={showTimestamps}
           />
         ))}
     </div>
@@ -246,6 +254,7 @@ interface FileNodeItemProps {
   onRemove: (id: string) => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
   noDelete?: boolean;
+  showTimestamps?: boolean;
 }
 
 function FileNodeItem({
@@ -262,6 +271,7 @@ function FileNodeItem({
   onRemove,
   menuRef,
   noDelete,
+  showTimestamps,
 }: FileNodeItemProps) {
   const isActive = file.id === activeFileId;
 
@@ -279,6 +289,11 @@ function FileNodeItem({
       >
         <FileIcon uploaded={file.uploaded} />
         <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-6">{name}</span>
+        {showTimestamps && file.modTime && (
+          <span className="ml-auto shrink-0 text-xs text-gh-text-secondary font-normal pr-6" title={new Date(file.modTime).toLocaleString()}>
+            {formatRelativeTime(file.modTime)}
+          </span>
+        )}
       </button>
       <FileContextMenu
         file={file}
