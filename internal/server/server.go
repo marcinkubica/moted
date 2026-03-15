@@ -88,12 +88,14 @@ type State struct {
 
 	noRestart bool
 	noDelete  bool
+	shareable bool
 }
 
 // Configure sets server behaviour flags. Call before serving.
-func (s *State) Configure(noRestart, noDelete bool) {
+func (s *State) Configure(noRestart, noDelete, shareable bool) {
 	s.noRestart = noRestart
 	s.noDelete = noDelete
+	s.shareable = shareable
 }
 
 const defaultFileChangeDebounce = 200 * time.Millisecond
@@ -1493,6 +1495,7 @@ func handleVersion(state *State) http.HandlerFunc {
 			"revision":  version.Revision,
 			"noRestart": state.noRestart,
 			"noDelete":  state.noDelete,
+			"shareable": state.shareable,
 		}
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			slog.Error("failed to encode version response", "error", err)

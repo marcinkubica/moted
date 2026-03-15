@@ -20,6 +20,7 @@ export interface VersionInfo {
   revision: string;
   noRestart?: boolean;
   noDelete?: boolean;
+  shareable?: boolean;
 }
 
 export async function fetchGroups(): Promise<Group[]> {

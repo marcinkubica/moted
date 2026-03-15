@@ -57,6 +57,7 @@ var (
 	noRestart        bool
 	noDelete         bool
 	readOnly         bool
+	shareable        bool
 )
 
 var rootCmd = &cobra.Command{
@@ -178,6 +179,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&noRestart, "no-restart", false, "Disable server restart from the browser UI")
 	rootCmd.Flags().BoolVar(&noDelete, "no-delete", false, "Disable file removal from the browser UI")
 	rootCmd.Flags().BoolVar(&readOnly, "read-only", false, "Disable restart and file removal from the browser UI (implies --no-restart and --no-delete)")
+	rootCmd.Flags().BoolVar(&shareable, "shareable", false, "Reflect the active file in the browser URL for easy sharing and deep linking")
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -980,7 +982,7 @@ func startServer(ctx context.Context, addr string, filesByGroup map[string][]str
 	defer cleanup()
 
 	state := server.NewState(ctx)
-	state.Configure(noRestart, noDelete)
+	state.Configure(noRestart, noDelete, shareable)
 
 	state.EnableBackup(ctx, func(data server.RestoreData) {
 		if err := backup.Save(port, data); err != nil {
@@ -1098,6 +1100,9 @@ func spawnNewProcess(addr string, restoreFile string) (*os.Process, error) {
 	}
 	if noDelete {
 		args = append(args, "--no-delete")
+	}
+	if shareable {
+		args = append(args, "--shareable")
 	}
 	cmd := exec.Command(binPath, args...) //nolint:gosec
 	setSysProcAttr(cmd)

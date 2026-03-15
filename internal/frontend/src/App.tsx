@@ -163,12 +163,20 @@ export function App() {
     }
   }, [activeGroup]);
 
-  // Clear search params after consuming initial file ID
+  // Sync ?file=<id> in URL (shareable mode) or clear it after initial consume (default mode).
+  // Wait for version to load before clearing so we don't race with shareable detection.
   useEffect(() => {
-    if (initialFileId === null && window.location.search) {
+    if (version === null) return;
+    if (version.shareable) {
+      const search = activeFileId ? `?file=${activeFileId}` : "";
+      const next = window.location.pathname + search;
+      if (window.location.pathname + window.location.search !== next) {
+        window.history.replaceState(null, "", next);
+      }
+    } else if (initialFileId === null && window.location.search) {
       window.history.replaceState(null, "", window.location.pathname);
     }
-  }, [initialFileId]);
+  }, [activeFileId, initialFileId, version]);
 
   const activeFileName = useMemo(
     () =>
