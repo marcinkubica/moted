@@ -280,7 +280,7 @@ export function Sidebar({
 
   return (
     <aside
-      className="relative bg-gh-bg-sidebar border-r border-gh-border flex flex-col overflow-y-auto shrink-0"
+      className="relative bg-gh-bg-sidebar border-r border-gh-border flex flex-col shrink-0"
       style={{ width }}
     >
       {searchOpen && (
@@ -298,7 +298,7 @@ export function Sidebar({
           />
         </div>
       )}
-      <nav className="flex flex-col pb-1">
+      <nav className="flex flex-col pb-1 flex-1 overflow-y-auto">
         {viewMode === "tree" ? (
           <TreeView
             ref={treeViewRef}
