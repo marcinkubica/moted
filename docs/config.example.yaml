@@ -35,11 +35,5 @@ groups:
   - name: default
     watch:
       - ./**/*.md
-      - /tmp/**/*.md
-    files:
-      - README.md
-      - CHANGELOG.md
-  - name: docs
-    watch:
-      - docs/**/*.md
+ 
 

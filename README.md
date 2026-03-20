@@ -1,14 +1,47 @@
 <p align="center">
 <br><br><br>
-<img src="https://github.com/k1LoW/mo/raw/main/images/logo.svg" width="120" alt="mo">
+<img src="https://github.com/marcinkubica/moted/raw/main/images/logo.svg" width="120" alt="moted">
 <br><br><br>
 </p>
 
-# mo
+# moted
 
-[![build](https://github.com/k1LoW/mo/actions/workflows/ci.yml/badge.svg)](https://github.com/k1LoW/mo/actions/workflows/ci.yml) ![Coverage](https://raw.githubusercontent.com/k1LoW/octocovs/main/badges/k1LoW/mo/coverage.svg) ![Code to Test Ratio](https://raw.githubusercontent.com/k1LoW/octocovs/main/badges/k1LoW/mo/ratio.svg) ![Test Execution Time](https://raw.githubusercontent.com/k1LoW/octocovs/main/badges/k1LoW/mo/time.svg)
+[![build](https://github.com/marcinkubica/moted/actions/workflows/ci.yml/badge.svg)](https://github.com/marcinkubica/moted/actions/workflows/ci.yml)
 
-`mo` is a **M**arkdown viewer that **o**pens `.md` files in a browser.
+> **moted:**, _mo_ but hosted
+>
+> A fork of [k1LoW/mo](https://github.com/k1LoW/mo) with hosting/server features for shared environments in mind.
+
+`moted` is a Markdown viewer that opens `.md` files in a browser, with the focus on hosting/server features for shared environments.
+
+> [!NOTE]
+> Project has been freshly forked and is in active development. Features may change.
+
+## What's New in moted
+
+**Configuration & Deployment:**
+- YAML configuration file support (`--config`)
+- Read-only mode for shared/public deployments
+- Shareable document links with clean URLs
+- True filename URLs (optional, falls back to hash IDs)
+- File timestamps (creation time and relative time)
+- Readiness endpoint for health checks
+
+**Enhanced UI:**
+- Share raw file content via direct links
+- Configurable UI restrictions (disable rew start, delete, file moves)
+- Control auto-selection of newly added files
+- Navigate to files by filename in URL
+
+---
+## Planned Features
+- Google/Github SSO
+- GCS bucket watching
+
+
+---
+>[!IMPORTANT]
+>Original readme has been preserved in full below (fon now)
 
 ## Features
 
@@ -35,36 +68,46 @@
 **homebrew tap:**
 
 ```console
-$ brew install k1LoW/tap/mo
+$ brew install marcinkubica/tap/moted
 ```
 
 **manually:**
 
-Download binary from [releases page](https://github.com/k1LoW/mo/releases)
+Download binary from [releases page](https://github.com/marcinkubica/moted/releases)
 
 ## Usage
 
+**Basic usage:**
+
 ``` console
-$ mo README.md                          # Open a single file
-$ mo README.md CHANGELOG.md docs/*.md   # Open multiple files
-$ mo spec.md --target design            # Open in a named group
+$ moted README.md                          # Open a single file
+$ moted README.md CHANGELOG.md docs/*.md   # Open multiple files
+$ moted spec.md --target design            # Open in a named group
 ```
 
-`mo` opens Markdown files in a browser with live-reload. When you save a file, the browser automatically reflects the changes.
+**With configuration file:**
+
+``` console
+$ moted --config config.yaml               # Start with YAML config
+```
+
+See [`docs/config.example.yaml`](docs/config.example.yaml) for all available options including read-only mode, shareable links, and UI behavior controls.
+
+`moted` opens Markdown files in a browser with live-reload. When you save a file, the browser automatically reflects the changes.
 
 ### Single server, multiple files
 
-By default, `mo` runs a single server on port `6275`. If a server is already running on the same port, subsequent `mo` invocations add files to the existing session instead of starting a new one.
+By default, `moted` runs a single server on port `6275`. If a server is already running on the same port, subsequent `moted` invocations add files to the existing session instead of starting a new one.
 
 ``` console
-$ mo README.md          # Starts a mo server in the background
-$ mo CHANGELOG.md       # Adds the file to the running mo server
+$ moted README.md          # Starts a moted server in the background
+$ moted CHANGELOG.md       # Adds the file to the running moted server
 ```
 
 To run a completely separate session, use a different port:
 
 ``` console
-$ mo draft.md -p 6276
+$ moted draft.md -p 6276
 ```
 
 ![Multiple files with sidebar](images/multiple-files.png)
@@ -74,9 +117,9 @@ $ mo draft.md -p 6276
 Files can be organized into named groups using the `--target` (`-t`) flag. Each group gets its own URL path and sidebar.
 
 ``` console
-$ mo spec.md --target design      # Opens at http://localhost:6275/design
-$ mo api.md --target design       # Adds to the "design" group
-$ mo notes.md --target notes      # Opens at http://localhost:6275/notes
+$ moted spec.md --target design      # Opens at http://localhost:6275/design
+$ moted api.md --target design       # Adds to the "design" group
+$ moted notes.md --target notes      # Opens at http://localhost:6275/notes
 ```
 
 ![Group view](images/groups.png)
@@ -86,9 +129,9 @@ $ mo notes.md --target notes      # Opens at http://localhost:6275/notes
 Use `--watch` (`-w`) to specify glob patterns. Matching files are opened automatically, and watched directories are monitored for new files.
 
 ``` console
-$ mo --watch '**/*.md'                          # Watch and open all .md files recursively
-$ mo --watch 'docs/**/*.md' --target docs       # Watch docs/ tree in "docs" group
-$ mo --watch '*.md' --watch 'docs/**/*.md'      # Multiple patterns
+$ moted --watch '**/*.md'                          # Watch and open all .md files recursively
+$ moted --watch 'docs/**/*.md' --target docs       # Watch docs/ tree in "docs" group
+$ moted --watch '*.md' --watch 'docs/**/*.md'      # Multiple patterns
 ```
 
 `--watch` cannot be combined with file arguments. The `**` pattern matches directories recursively.
@@ -98,9 +141,9 @@ $ mo --watch '*.md' --watch 'docs/**/*.md'      # Multiple patterns
 Use `--unwatch` to stop watching a previously registered pattern. Files already added remain in the sidebar.
 
 ``` console
-$ mo --unwatch '**/*.md'                              # Stop watching a pattern (default group)
-$ mo --unwatch 'docs/**/*.md' --target docs            # Stop watching in a specific group
-$ mo --unwatch '/Users/you/project/**/*.md'            # Stop watching by absolute path
+$ moted --unwatch '**/*.md'                              # Stop watching a pattern (default group)
+$ moted --unwatch 'docs/**/*.md' --target docs            # Stop watching in a specific group
+$ moted --unwatch '/Users/you/project/**/*.md'            # Stop watching by absolute path
 ```
 
 Patterns are resolved to absolute paths before matching, so you can specify either a relative glob or the full path shown by `--status`.
@@ -115,55 +158,55 @@ The sidebar supports flat and tree view modes. Flat view shows file names only, 
 
 ### Starting and stopping
 
-`mo` runs in the background by default — the command returns immediately, leaving the shell free for other work. This makes it easy to incorporate into scripts, tool chains, or LLM-driven workflows.
+`moted` runs in the background by default — the command returns immediately, leaving the shell free for other work. This makes it easy to incorporate into scripts, tool chains, or LLM-driven workflows.
 
 ``` console
-$ mo README.md
-mo: serving at http://localhost:6275 (pid 12345)
+$ moted README.md
+moted: serving at http://localhost:6275 (pid 12345)
 $ # shell is available immediately
 ```
 
-Use `--status` to check all running mo servers, and `--shutdown` to stop one:
+Use `--status` to check all running moted servers, and `--shutdown` to stop one:
 
 ``` console
-$ mo --status              # Show all running mo servers
+$ moted --status              # Show all running moted servers
 http://localhost:6275 (pid 12345, v0.12.0)
   default: 5 file(s)
     watching: /Users/you/project/src/**/*.md, /Users/you/project/*.md
   docs: 2 file(s)
     watching: /Users/you/project/docs/**/*.md
 
-$ mo --shutdown            # Shut down the mo server on the default port
-$ mo --shutdown -p 6276    # Shut down the mo server on a specific port
-$ mo --restart             # Restart the mo server on the default port
+$ moted --shutdown            # Shut down the moted server on the default port
+$ moted --shutdown -p 6276    # Shut down the moted server on a specific port
+$ moted --restart             # Restart the moted server on the default port
 ```
 
-If you need the mo server to run in the foreground (e.g. for debugging), use `--foreground`:
+If you need the moted server to run in the foreground (e.g. for debugging), use `--foreground`:
 
 ``` console
-$ mo --foreground README.md
+$ moted --foreground README.md
 ```
 
 ### Server restart
 
-Click the <img src="images/icons/restart.svg" width="16" height="16" alt="restart"> restart button (bottom-right corner) or run `mo --restart` to restart the `mo` server process. The current session — all open files and groups — is preserved across the restart. This is useful when you have updated the `mo` binary and want to pick up the new version without re-opening your files.
+Click the <img src="images/icons/restart.svg" width="16" height="16" alt="restart"> restart button (bottom-right corner) or run `moted --restart` to restart the `moted` server process. The current session — all open files and groups — is preserved across the restart. This is useful when you have updated the `moted` binary and want to pick up the new version without re-opening your files.
 
 ### Session backup and restore
 
-`mo` automatically saves session state (open files and watch patterns per group) when files are added or removed. When starting a new server, the previous session is automatically restored and merged with any files specified on the command line. Restored session entries appear first, followed by newly specified files.
+`moted` automatically saves session state (open files and watch patterns per group) when files are added or removed. When starting a new server, the previous session is automatically restored and merged with any files specified on the command line. Restored session entries appear first, followed by newly specified files.
 
 ``` console
-$ mo README.md CHANGELOG.md       # Start with two files
-$ mo --shutdown                   # Shut down the server
-$ mo                              # Restores README.md and CHANGELOG.md
-$ mo TODO.md                      # Restores previous session + adds TODO.md
+$ moted README.md CHANGELOG.md       # Start with two files
+$ moted --shutdown                   # Shut down the server
+$ moted                              # Restores README.md and CHANGELOG.md
+$ moted TODO.md                      # Restores previous session + adds TODO.md
 ```
 
 Use `--clear` to remove a saved session:
 
 ``` console
-$ mo --clear                      # Clear saved session for the default port
-$ mo --clear -p 6276              # Clear saved session for a specific port
+$ moted --clear                      # Clear saved session for the default port
+$ moted --clear -p 6276              # Clear saved session for a specific port
 ```
 
 ### JSON output
@@ -171,7 +214,7 @@ $ mo --clear -p 6276              # Clear saved session for a specific port
 Use `--json` to get structured JSON output on stdout, useful for scripting and integration with other tools.
 
 ``` console
-$ mo --json README.md
+$ moted --json README.md
 {
   "url": "http://localhost:6275",
   "files": [
@@ -187,7 +230,7 @@ $ mo --json README.md
 `--status` also supports `--json`:
 
 ``` console
-$ mo --status --json
+$ moted --status --json
 [
   {
     "url": "http://localhost:6275",
@@ -206,26 +249,54 @@ $ mo --status --json
 ]
 ```
 
-### Flags
+### Configuration File
+
+For production deployments or complex setups, use a YAML configuration file:
+
+```yaml
+# Server settings
+bind: 0.0.0.0
+port: 8080
+foreground: true
+
+# Security & UI behavior
+read-only: true              # Shorthand for no-restart + no-delete + no-file-move
+shareable: true              # Expose document links in address bar
+true-filenames: true         # Use actual filenames in URLs
+newfile-no-autoselect: true  # Don't auto-open new files
+
+# Groups and watch patterns
+groups:
+  - name: docs
+    watch:
+      - ./docs/**/*.md
+```
+
+See [`docs/config.example.yaml`](docs/config.example.yaml) for complete configuration options.
+
+### Command-Line Flags
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
+| `--config` | | | Path to YAML configuration file |
 | `--target` | `-t` | `default` | Group name |
 | `--port` | `-p` | `6275` | Server port |
 | `--bind` | `-b` | `localhost` | Bind address (e.g. `0.0.0.0`) |
 | `--open` | | | Always open browser |
 | `--no-open` | | | Never open browser |
-| `--status` | | | Show all running mo servers |
+| `--status` | | | Show all running moted servers |
 | `--watch` | `-w` | | Glob pattern to watch for matching files (repeatable) |
 | `--unwatch` | | | Remove a watched glob pattern (repeatable) |
-| `--shutdown` | | | Shut down the running mo server |
-| `--restart` | | | Restart the running mo server |
+| `--shutdown` | | | Shut down the running moted server |
+| `--restart` | | | Restart the running moted server |
 | `--clear` | | | Clear saved session for the specified port |
-| `--foreground` | | | Run mo server in foreground |
+| `--foreground` | | | Run moted server in foreground |
 | `--json` | | | Output structured data as JSON to stdout |
+| `--quiet` | `-q` | | Suppress non-error output |
+| `--read-only` | | | Disable restart, delete, and file move operations |
 
 > [!WARNING]
-> Binding to a non-localhost address exposes mo to the network **without any authentication**. Remote clients can read any file accessible by the user, browse the filesystem via glob patterns, and shut down the server. A confirmation prompt is shown when `--bind` is set to a non-loopback address.
+> Binding to a non-localhost address exposes moted to the network **without any authentication**. Remote clients can read any file accessible by the user, browse the filesystem via glob patterns, and shut down the server. A confirmation prompt is shown when `--bind` is set to a non-loopback address.
 
 ## Build
 
@@ -241,7 +312,10 @@ $ make build
 
 ## License
 
-- [MIT License](LICENSE)
-    - Include logo as well as source code.
-    - Only logo license can be selected [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-    - Also, if there is no alteration to the logo and it is used for technical information about mo, I would not say anything if the copyright notice is omitted.
+[MIT License](LICENSE)
+
+### Attribution
+
+This project is a fork of [mo](https://github.com/k1LoW/mo) by [Ken'ichiro Oyama (k1LoW)](https://github.com/k1LoW).
+
+The original author has graciously permitted this fork and the use of the original logo under the MIT license. All copyright notices are preserved in the [LICENSE](LICENSE) file.

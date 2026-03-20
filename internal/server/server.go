@@ -87,12 +87,12 @@ type State struct {
 	backupSaveFn func(RestoreData) // backup write callback
 	backupDone   chan struct{}     // closed when backupLoop exits
 
-	noRestart          bool
-	noDelete           bool
-	noFileMove         bool
+	noRestart           bool
+	noDelete            bool
+	noFileMove          bool
 	noNewFileAutoSelect bool
-	shareable          bool
-	trueFilenames      bool
+	shareable           bool
+	trueFilenames       bool
 }
 
 // Configure sets server behaviour flags. Call before serving.
@@ -1553,14 +1553,14 @@ func handleVersion(state *State) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		resp := map[string]any{
-			"version":   version.Version,
-			"revision":  version.Revision,
-			"noRestart": state.noRestart,
-			"noDelete":  state.noDelete,
-			"noFileMove":         state.noFileMove,
+			"version":             version.Version,
+			"revision":            version.Revision,
+			"noRestart":           state.noRestart,
+			"noDelete":            state.noDelete,
+			"noFileMove":          state.noFileMove,
 			"noNewFileAutoSelect": state.noNewFileAutoSelect,
-			"shareable":          state.shareable,
-			"trueFilenames":      state.trueFilenames,
+			"shareable":           state.shareable,
+			"trueFilenames":       state.trueFilenames,
 		}
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			slog.Error("failed to encode version response", "error", err)

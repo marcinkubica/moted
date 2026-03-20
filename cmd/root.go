@@ -39,30 +39,30 @@ const (
 )
 
 var (
-	target          string
-	port            int
-	bind            string
-	open            bool
-	noOpen          bool
-	restore         string
-	shutdownServer  bool
-	restartServer   bool
-	foreground      bool
-	statusServer    bool
-	watchPatterns   []string
-	unwatchPatterns []string
-	clearBackup      bool
-	jsonOutput       bool
+	target                       string
+	port                         int
+	bind                         string
+	open                         bool
+	noOpen                       bool
+	restore                      string
+	shutdownServer               bool
+	restartServer                bool
+	foreground                   bool
+	statusServer                 bool
+	watchPatterns                []string
+	unwatchPatterns              []string
+	clearBackup                  bool
+	jsonOutput                   bool
 	dangerouslyAllowRemoteAccess bool
-	noRestart        bool
-	noDelete         bool
-	noFileMove           bool
-	noNewFileAutoSelect  bool
-	readOnly         bool
-	shareable        bool
-	trueFilenames    bool
-	configPath       string
-	quiet            bool
+	noRestart                    bool
+	noDelete                     bool
+	noFileMove                   bool
+	noNewFileAutoSelect          bool
+	readOnly                     bool
+	shareable                    bool
+	trueFilenames                bool
+	configPath                   string
+	quiet                        bool
 )
 
 var rootCmd = &cobra.Command{
