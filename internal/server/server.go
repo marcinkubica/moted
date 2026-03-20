@@ -30,6 +30,7 @@ type FileEntry struct {
 	ID       string `json:"id"`
 	Path     string `json:"path"`
 	Uploaded bool   `json:"uploaded,omitempty"`
+	ModTime  string `json:"modTime,omitempty"`
 	content  string // in-memory content for uploaded files
 }
 
@@ -85,6 +86,23 @@ type State struct {
 	backupCh     chan struct{}     // dirty signal (buffered, size 1)
 	backupSaveFn func(RestoreData) // backup write callback
 	backupDone   chan struct{}     // closed when backupLoop exits
+
+	noRestart           bool
+	noDelete            bool
+	noFileMove          bool
+	noNewFileAutoSelect bool
+	shareable           bool
+	trueFilenames       bool
+}
+
+// Configure sets server behaviour flags. Call before serving.
+func (s *State) Configure(noRestart, noDelete, noFileMove, noNewFileAutoSelect, shareable, trueFilenames bool) {
+	s.noRestart = noRestart
+	s.noDelete = noDelete
+	s.noFileMove = noFileMove
+	s.noNewFileAutoSelect = noNewFileAutoSelect
+	s.shareable = shareable
+	s.trueFilenames = trueFilenames
 }
 
 const defaultFileChangeDebounce = 200 * time.Millisecond
@@ -197,7 +215,7 @@ func (s *State) AddFile(absPath, groupName string) (*FileEntry, error) {
 		}
 	}
 
-	slog.Info("file added", "path", absPath, "group", groupName, "id", entry.ID)
+	slog.Debug("file added", "path", absPath, "group", groupName, "id", entry.ID)
 
 	s.sendEvent(sseEvent{Name: eventUpdate, Data: "{}"})
 	return entry, nil
@@ -235,7 +253,7 @@ func (s *State) AddUploadedFile(name, content, groupName string) *FileEntry {
 	}
 	g.Files = append(g.Files, entry)
 
-	slog.Info("uploaded file added", "name", name, "group", groupName, "id", entry.ID)
+	slog.Debug("uploaded file added", "name", name, "group", groupName, "id", entry.ID)
 
 	s.sendEvent(sseEvent{Name: eventUpdate, Data: "{}"})
 	return entry
@@ -1074,6 +1092,7 @@ func NewHandler(state *State) http.Handler {
 	mux.HandleFunc("GET /_/api/groups", handleGroups(state))
 	mux.HandleFunc("PUT /_/api/reorder", handleReorderFiles(state))
 	mux.HandleFunc("GET /_/api/files/{id}/content", handleFileContent(state))
+	mux.HandleFunc("GET /_/api/files/{id}/raw", handleFileTextRaw(state))
 	mux.HandleFunc("GET /_/api/files/{id}/raw/{path...}", handleFileRaw(state))
 	mux.HandleFunc("POST /_/api/files/open", handleOpenFile(state))
 	mux.HandleFunc("POST /_/api/patterns", handleAddPattern(state))
@@ -1081,8 +1100,9 @@ func NewHandler(state *State) http.Handler {
 	mux.HandleFunc("POST /_/api/restart", handleRestart(state))
 	mux.HandleFunc("POST /_/api/shutdown", handleShutdown(state))
 	mux.HandleFunc("GET /_/api/status", handleStatus(state))
-	mux.HandleFunc("GET /_/api/version", handleVersion())
+	mux.HandleFunc("GET /_/api/version", handleVersion(state))
 	mux.HandleFunc("GET /_/events", handleSSE(state))
+	mux.HandleFunc("GET /readyz", handleReadyz())
 	mux.HandleFunc("GET /", handleSPA())
 
 	return mux
@@ -1167,6 +1187,10 @@ func handleUploadFile(state *State) http.HandlerFunc {
 
 func handleRemoveFile(state *State) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if state.noDelete {
+			http.Error(w, "delete disabled", http.StatusForbidden)
+			return
+		}
 		id := r.PathValue("id")
 		if id == "" {
 			http.Error(w, "missing file id", http.StatusBadRequest)
@@ -1182,6 +1206,10 @@ func handleRemoveFile(state *State) http.HandlerFunc {
 
 func handleMoveFile(state *State) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if state.noFileMove {
+			http.Error(w, "move disabled", http.StatusForbidden)
+			return
+		}
 		id := r.PathValue("id")
 		if id == "" {
 			http.Error(w, "missing file id", http.StatusBadRequest)
@@ -1228,6 +1256,20 @@ func handleReorderFiles(state *State) http.HandlerFunc {
 func handleGroups(state *State) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		groups := state.Groups()
+		// Enrich file entries with mod times without mutating shared state.
+		for i := range groups {
+			enriched := make([]*FileEntry, len(groups[i].Files))
+			for j, f := range groups[i].Files {
+				cp := *f
+				if !cp.Uploaded && cp.Path != "" {
+					if info, err := os.Stat(cp.Path); err == nil {
+						cp.ModTime = info.ModTime().UTC().Format(time.RFC3339)
+					}
+				}
+				enriched[j] = &cp
+			}
+			groups[i].Files = enriched
+		}
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(groups); err != nil {
 			slog.Error("failed to encode response", "error", err)
@@ -1270,6 +1312,42 @@ func handleFileContent(state *State) http.HandlerFunc {
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			slog.Error("failed to encode response", "error", err)
 		}
+	}
+}
+
+func handleFileTextRaw(state *State) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !state.shareable {
+			http.Error(w, "sharing not enabled", http.StatusForbidden)
+			return
+		}
+
+		id := r.PathValue("id")
+		if id == "" {
+			http.Error(w, "missing file id", http.StatusBadRequest)
+			return
+		}
+
+		entry := state.FindFile(id)
+		if entry == nil {
+			http.Error(w, "file not found", http.StatusNotFound)
+			return
+		}
+
+		var content string
+		if entry.Uploaded {
+			content = entry.content
+		} else {
+			data, err := os.ReadFile(entry.Path) //nolint:gosec // Path is server-managed, not user-supplied
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			content = string(data)
+		}
+
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		fmt.Fprint(w, content)
 	}
 }
 
@@ -1407,6 +1485,10 @@ func handleRemovePattern(state *State) http.HandlerFunc {
 
 func handleRestart(state *State) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if state.noRestart {
+			http.Error(w, "restart disabled", http.StatusForbidden)
+			return
+		}
 		restoreFile, err := state.ExportState()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1468,15 +1550,28 @@ func handleStatus(state *State) http.HandlerFunc {
 	}
 }
 
-func handleVersion() http.HandlerFunc {
+func handleVersion(state *State) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]string{
-			"version":  version.Version,
-			"revision": version.Revision,
-		}); err != nil {
+		resp := map[string]any{
+			"version":             version.Version,
+			"revision":            version.Revision,
+			"noRestart":           state.noRestart,
+			"noDelete":            state.noDelete,
+			"noFileMove":          state.noFileMove,
+			"noNewFileAutoSelect": state.noNewFileAutoSelect,
+			"shareable":           state.shareable,
+			"trueFilenames":       state.trueFilenames,
+		}
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			slog.Error("failed to encode version response", "error", err)
 		}
+	}
+}
+
+func handleReadyz() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

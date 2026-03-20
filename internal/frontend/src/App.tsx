@@ -6,6 +6,9 @@ import { WidthToggle } from "./components/WidthToggle";
 import { GroupDropdown } from "./components/GroupDropdown";
 import { ViewModeToggle, type ViewMode } from "./components/ViewModeToggle";
 import { SearchToggle } from "./components/SearchToggle";
+import { TimestampToggle, type TimestampMode } from "./components/TimestampToggle";
+import { TreeCollapseToggle } from "./components/TreeCollapseToggle";
+import type { TreeViewHandle } from "./components/TreeView";
 import { RestartButton } from "./components/RestartButton";
 import { DropOverlay } from "./components/DropOverlay";
 import { TocPanel } from "./components/TocPanel";
@@ -14,13 +17,14 @@ import { useSSE } from "./hooks/useSSE";
 import { useFileDrop } from "./hooks/useFileDrop";
 import { useActiveHeading } from "./hooks/useActiveHeading";
 import { useScrollRestoration, SCROLL_SESSION_KEY } from "./hooks/useScrollRestoration";
-import type { Group } from "./hooks/useApi";
-import { fetchGroups, removeFile, reorderFiles } from "./hooks/useApi";
-import { allFileIds, parseGroupFromPath, parseFileIdFromSearch, groupToPath } from "./utils/groups";
+import type { Group, VersionInfo } from "./hooks/useApi";
+import { fetchGroups, fetchVersion, removeFile, reorderFiles } from "./hooks/useApi";
+import { allFileIds, parseGroupFromPath, parseFileIdFromSearch, parseFilenameFromSearch, groupToPath } from "./utils/groups";
 import { isMarkdownFile } from "./utils/filetype";
 
 const VIEWMODE_STORAGE_KEY = "mo-sidebar-viewmode";
 const WIDTH_STORAGE_KEY = "mo-layout-width";
+const TIMESTAMPS_STORAGE_KEY = "mo-timestamp-mode";
 
 export function App() {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -33,6 +37,15 @@ export function App() {
   const [headings, setHeadings] = useState<TocHeading[]>([]);
   const [contentRevision, setContentRevision] = useState(0);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
+  const [timestampMode, setTimestampMode] = useState<TimestampMode>(() => {
+    try {
+      const v = localStorage.getItem(TIMESTAMPS_STORAGE_KEY);
+      if (v === "relative" || v === "absolute") return v;
+    } catch {
+      /* ignore */
+    }
+    return "off";
+  });
   const [viewModes, setViewModes] = useState<Record<string, ViewMode>>(() => {
     try {
       const stored = localStorage.getItem(VIEWMODE_STORAGE_KEY);
@@ -49,10 +62,16 @@ export function App() {
       return false;
     }
   });
+  const [version, setVersion] = useState<VersionInfo | null>(null);
   const knownFileIds = useRef<Set<string>>(new Set());
+  const treeViewRef = useRef<TreeViewHandle>(null);
+  const [treeAllCollapsed, setTreeAllCollapsed] = useState(false);
+  const [initialFilename, setInitialFilename] = useState<string | null>(() => parseFilenameFromSearch(window.location.search));
   const [initialFileId, setInitialFileId] = useState<string | null>(() => {
     const fromUrl = parseFileIdFromSearch(window.location.search);
     if (fromUrl) return fromUrl;
+    // If ?filename= is present, don't restore from sessionStorage — let filename resolution handle it
+    if (parseFilenameFromSearch(window.location.search)) return null;
     // Restore active file from scroll context saved before reload
     try {
       const stored = sessionStorage.getItem(SCROLL_SESSION_KEY);
@@ -91,10 +110,17 @@ export function App() {
       setActiveGroup(sortedGroups[0].name);
     } else if (group.files.length === 0) {
       setActiveFileId(null);
-    } else if (initialFileId != null) {
+    } else if (initialFileId != null || initialFilename != null) {
+      // Resolve initialFilename to an ID by matching against the group's files
+      let resolvedId: string | null = initialFileId;
+      if (resolvedId == null && initialFilename != null) {
+        const match = group.files.find((f) => f.name === initialFilename);
+        resolvedId = match?.id ?? null;
+      }
       setInitialFileId(null);
+      setInitialFilename(null);
       setActiveFileId(
-        group.files.some((f) => f.id === initialFileId) ? initialFileId : group.files[0].id,
+        resolvedId && group.files.some((f) => f.id === resolvedId) ? resolvedId : group.files[0].id,
       );
     } else {
       setActiveFileId((prev) => {
@@ -119,7 +145,7 @@ export function App() {
 
       setGroups(data);
 
-      if (added.length > 0 && !wasEmpty) {
+      if (added.length > 0 && !wasEmpty && !version?.noNewFileAutoSelect) {
         // Only auto-select if the new file belongs to the current active group
         setActiveGroup((currentGroup) => {
           const group = data.find((g) => g.name === currentGroup);
@@ -136,7 +162,7 @@ export function App() {
     } catch {
       // server may not be ready yet
     }
-  }, []);
+  }, [version]);
 
   // Initial data fetch (setState inside .then() is async, not flagged by linter)
   useEffect(() => {
@@ -145,6 +171,9 @@ export function App() {
         knownFileIds.current = allFileIds(data);
         setGroups(data);
       })
+      .catch(() => {});
+    fetchVersion()
+      .then(setVersion)
       .catch(() => {});
   }, []);
 
@@ -156,12 +185,32 @@ export function App() {
     }
   }, [activeGroup]);
 
-  // Clear search params after consuming initial file ID
+  // Sync ?file=<id> or ?filename=<name> in URL (shareable mode) or clear it after initial consume.
+  // Wait for version to load before clearing so we don't race with shareable detection.
   useEffect(() => {
-    if (initialFileId === null && window.location.search) {
+    if (version === null) return;
+    if (version.shareable) {
+      let search = "";
+      if (activeFileId) {
+        if (version.trueFilenames) {
+          const group = groups.find((g) => g.name === activeGroup);
+          const file = group?.files.find((f) => f.id === activeFileId);
+          const isUnique = file && group!.files.filter((f) => f.name === file.name).length === 1;
+          search = file && isUnique
+            ? `?filename=${encodeURIComponent(file.name)}`
+            : `?file=${activeFileId}`;
+        } else {
+          search = `?file=${activeFileId}`;
+        }
+      }
+      const next = window.location.pathname + search;
+      if (window.location.pathname + window.location.search !== next) {
+        window.history.replaceState(null, "", next);
+      }
+    } else if (initialFileId === null && initialFilename === null && window.location.search) {
       window.history.replaceState(null, "", window.location.pathname);
     }
-  }, [initialFileId]);
+  }, [activeFileId, activeGroup, groups, initialFileId, initialFilename, version]);
 
   const activeFileName = useMemo(
     () =>
@@ -212,13 +261,20 @@ export function App() {
     }
   }, [isWide]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(TIMESTAMPS_STORAGE_KEY, timestampMode);
+    } catch {
+      /* ignore */
+    }
+  }, [timestampMode]);
+
   const handleViewModeToggle = useCallback(() => {
-    setViewModes((prev) => {
-      const current = prev[activeGroup] ?? "flat";
-      const nextMode: ViewMode = current === "flat" ? "tree" : "flat";
-      return { ...prev, [activeGroup]: nextMode };
-    });
-  }, [activeGroup]);
+    const current = viewModes[activeGroup] ?? "flat";
+    const nextMode: ViewMode = current === "flat" ? "tree" : "flat";
+    setViewModes((prev) => ({ ...prev, [activeGroup]: nextMode }));
+    if (nextMode === "flat") setTreeAllCollapsed(false);
+  }, [activeGroup, viewModes]);
 
   const handleSearchToggle = useCallback(() => {
     setSearchQuery((prev) => (prev != null ? null : ""));
@@ -227,6 +283,7 @@ export function App() {
   const handleGroupChange = (name: string) => {
     setActiveGroup(name);
     setActiveFileId(null);
+    setTreeAllCollapsed(false);
     window.history.pushState(null, "", groupToPath(name));
   };
 
@@ -303,7 +360,22 @@ export function App() {
           onGroupChange={handleGroupChange}
         />
         <ViewModeToggle viewMode={currentViewMode} onToggle={handleViewModeToggle} />
+        {currentViewMode === "tree" && (
+          <TreeCollapseToggle
+            collapsed={treeAllCollapsed}
+            onToggle={() => {
+              if (treeAllCollapsed) {
+                treeViewRef.current?.expandAll();
+                setTreeAllCollapsed(false);
+              } else {
+                treeViewRef.current?.collapseAll();
+                setTreeAllCollapsed(true);
+              }
+            }}
+          />
+        )}
         <SearchToggle isOpen={searchQuery != null} onToggle={handleSearchToggle} />
+        <TimestampToggle mode={timestampMode} onToggle={() => setTimestampMode((v) => v === "off" ? "relative" : v === "relative" ? "absolute" : "off")} />
         <div className="ml-auto flex items-center gap-2">
           <WidthToggle isWide={isWide} onToggle={() => setIsWide((v) => !v)} />
           <ThemeToggle />
@@ -320,6 +392,10 @@ export function App() {
             viewMode={currentViewMode}
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
+            treeViewRef={treeViewRef}
+            noDelete={version?.noDelete}
+            noFileMove={version?.noFileMove}
+            timestampMode={timestampMode}
           />
         )}
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -336,6 +412,8 @@ export function App() {
                 onTocToggle={() => setTocOpen((v) => !v)}
                 onRemoveFile={handleRemoveFile}
                 isWide={isWide}
+                noDelete={version?.noDelete}
+                shareable={version?.shareable}
               />
             ) : (
               <div className="flex items-center justify-center h-50 text-gh-text-secondary text-sm">
@@ -352,7 +430,7 @@ export function App() {
           />
         )}
       </div>
-      <RestartButton />
+      <RestartButton version={version} noRestart={version?.noRestart} />
       {isDragging && <DropOverlay />}
     </div>
   );

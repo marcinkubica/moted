@@ -39,21 +39,30 @@ const (
 )
 
 var (
-	target          string
-	port            int
-	bind            string
-	open            bool
-	noOpen          bool
-	restore         string
-	shutdownServer  bool
-	restartServer   bool
-	foreground      bool
-	statusServer    bool
-	watchPatterns   []string
-	unwatchPatterns []string
-	clearBackup      bool
-	jsonOutput       bool
+	target                       string
+	port                         int
+	bind                         string
+	open                         bool
+	noOpen                       bool
+	restore                      string
+	shutdownServer               bool
+	restartServer                bool
+	foreground                   bool
+	statusServer                 bool
+	watchPatterns                []string
+	unwatchPatterns              []string
+	clearBackup                  bool
+	jsonOutput                   bool
 	dangerouslyAllowRemoteAccess bool
+	noRestart                    bool
+	noDelete                     bool
+	noFileMove                   bool
+	noNewFileAutoSelect          bool
+	readOnly                     bool
+	shareable                    bool
+	trueFilenames                bool
+	configPath                   string
+	quiet                        bool
 )
 
 var rootCmd = &cobra.Command{
@@ -172,9 +181,33 @@ func init() {
 	rootCmd.Flags().BoolVar(&clearBackup, "clear", false, "Clear saved session for the specified port")
 	rootCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output structured data as JSON to stdout")
 	rootCmd.Flags().BoolVar(&dangerouslyAllowRemoteAccess, "dangerously-allow-remote-access", false, "Allow remote access without authentication. Recommended only for trusted networks.")
+	rootCmd.Flags().BoolVar(&noRestart, "no-restart", false, "Disable server restart from the browser UI")
+	rootCmd.Flags().BoolVar(&noDelete, "no-delete", false, "Disable file removal from the browser UI")
+	rootCmd.Flags().BoolVar(&noFileMove, "no-file-move", false, "Disable moving files between groups from the browser UI")
+	rootCmd.Flags().BoolVar(&readOnly, "read-only", false, "Disable restart, file removal, and file move from the browser UI (implies --no-restart, --no-delete, and --no-file-move)")
+	rootCmd.Flags().BoolVar(&noNewFileAutoSelect, "newfile-no-autoselect", false, "Do not auto-select newly added files in the browser")
+	rootCmd.Flags().BoolVar(&shareable, "shareable", false, "Reflect the active file in the browser URL for easy sharing and deep linking")
+	rootCmd.Flags().BoolVar(&trueFilenames, "true-filenames", false, "Use actual filenames in URLs instead of hash IDs (uses ?filename= param)")
+	rootCmd.Flags().StringVar(&configPath, "config", "", "Path to YAML config file (mutually exclusive with file arguments, --target, and --watch)")
+	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Suppress file listing output on startup")
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	// Load and apply config file first so port/bind/foreground are set correctly for log setup.
+	var cfg *configFile
+	if configPath != "" {
+		abs, err := filepath.Abs(configPath)
+		if err != nil {
+			return fmt.Errorf("cannot resolve --config path: %w", err)
+		}
+		configPath = abs
+		cfg, err = loadConfigFile(configPath)
+		if err != nil {
+			return fmt.Errorf("--config: %w", err)
+		}
+		applyConfig(cmd, cfg)
+	}
+
 	if !foreground || restore != "" {
 		logCleanup, err := logfile.Setup(port)
 		if err != nil {
@@ -251,6 +284,28 @@ func run(cmd *cobra.Command, args []string) error {
 		return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup, uploadedFiles)
 	}
 
+	if cfg != nil {
+		if readOnly {
+			noRestart = true
+			noDelete = true
+			noFileMove = true
+		}
+		if ok, err := checkRemoteAccess(bind); err != nil {
+			return err
+		} else if !ok {
+			fmt.Fprintln(os.Stderr, "mo: canceled")
+			return nil
+		}
+		filesByGroup, patternsByGroup, err := buildGroupsFromConfig(cfg)
+		if err != nil {
+			return err
+		}
+		if foreground {
+			return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup, nil)
+		}
+		return startBackground(addr, filesByGroup, patternsByGroup, nil)
+	}
+
 	resolved, err := server.ResolveGroupName(target)
 	if err != nil {
 		return fmt.Errorf("invalid target group name %q: %w", target, err)
@@ -312,31 +367,18 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Prompt only when actually starting a new server (not adding to existing one).
-	if !isLoopbackBind(bind) {
-		slog.Warn("binding to non-loopback address", "bind", bind, "dangerously-allow-remote-access", dangerouslyAllowRemoteAccess)
+	if ok, err := checkRemoteAccess(bind); err != nil {
+		return err
+	} else if !ok {
+		fmt.Fprintln(os.Stderr, "mo: canceled")
+		return nil
 	}
-	if !isLoopbackBind(bind) && !dangerouslyAllowRemoteAccess {
-		o := termenv.NewOutput(os.Stderr)
-		c := func(s string) termenv.Style { return o.String(s).Foreground(o.Color("208")) }
-		fmt.Fprintln(os.Stderr, c("SECURITY WARNING:").Bold(),
-			c(fmt.Sprintf("Binding to %s instead of localhost. mo has no authentication -- remote clients can:", bind)))
-		fmt.Fprintln(os.Stderr, c("  - Read any file accessible by this user"))
-		fmt.Fprintln(os.Stderr, c("  - Browse the filesystem via glob patterns"))
-		fmt.Fprintln(os.Stderr, c("  - Shut down or restart the server"))
-		fmt.Fprintf(os.Stderr, "Continue? [y/N] ")
-		scanner := bufio.NewScanner(os.Stdin)
-		if !scanner.Scan() {
-			if err := scanner.Err(); err != nil {
-				return err
-			}
-			fmt.Fprintln(os.Stderr, "mo: canceled")
-			return nil
-		}
-		ans := strings.ToLower(strings.TrimSpace(scanner.Text()))
-		if ans != "y" && ans != "yes" {
-			fmt.Fprintln(os.Stderr, "mo: canceled")
-			return nil
-		}
+
+	// --read-only implies all granular flags
+	if readOnly {
+		noRestart = true
+		noDelete = true
+		noFileMove = true
 	}
 
 	if foreground {
@@ -401,6 +443,31 @@ func loadRestoreData(path string) (map[string][]string, map[string][]string, []s
 		return nil, nil, nil, err
 	}
 	return rd.Groups, rd.Patterns, rd.UploadedFiles, nil
+}
+
+// checkRemoteAccess warns and optionally prompts when binding to a non-loopback address.
+// Returns (true, nil) to proceed, (false, nil) if the user declined, or (false, err) on scan error.
+func checkRemoteAccess(bind string) (bool, error) {
+	if !isLoopbackBind(bind) {
+		slog.Warn("binding to non-loopback address", "bind", bind, "dangerously-allow-remote-access", dangerouslyAllowRemoteAccess)
+	}
+	if isLoopbackBind(bind) || dangerouslyAllowRemoteAccess {
+		return true, nil
+	}
+	o := termenv.NewOutput(os.Stderr)
+	c := func(s string) termenv.Style { return o.String(s).Foreground(o.Color("208")) }
+	fmt.Fprintln(os.Stderr, c("SECURITY WARNING:").Bold(),
+		c(fmt.Sprintf("Binding to %s instead of localhost. mo has no authentication -- remote clients can:", bind)))
+	fmt.Fprintln(os.Stderr, c("  - Read any file accessible by this user"))
+	fmt.Fprintln(os.Stderr, c("  - Browse the filesystem via glob patterns"))
+	fmt.Fprintln(os.Stderr, c("  - Shut down or restart the server"))
+	fmt.Fprintf(os.Stderr, "Continue? [y/N] ")
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		return false, scanner.Err()
+	}
+	ans := strings.ToLower(strings.TrimSpace(scanner.Text()))
+	return ans == "y" || ans == "yes", nil
 }
 
 func isLoopbackBind(bind string) bool {
@@ -680,6 +747,9 @@ func printDeeplinks(entries []deeplinkEntry) {
 // emitServeOutput writes the serve result (server URL + deeplinks) to stdout.
 // In JSON mode it emits a single JSON object; in text mode it prints the URL and deeplinks.
 func emitServeOutput(addr string, deeplinks []deeplinkEntry, printURL bool) {
+	if quiet {
+		return
+	}
 	if jsonOutput {
 		writeJSON(jsonServeOutput{
 			URL:   fmt.Sprintf("http://%s", addr),
@@ -968,6 +1038,7 @@ func startServer(ctx context.Context, addr string, filesByGroup map[string][]str
 	defer cleanup()
 
 	state := server.NewState(ctx)
+	state.Configure(noRestart, noDelete, noFileMove, noNewFileAutoSelect, shareable, trueFilenames)
 
 	state.EnableBackup(ctx, func(data server.RestoreData) {
 		if err := backup.Save(port, data); err != nil {
@@ -1079,7 +1150,22 @@ func spawnNewProcess(addr string, restoreFile string) (*os.Process, error) {
 		return nil, fmt.Errorf("cannot parse addr: %w", err)
 	}
 
-	cmd := exec.Command(binPath, "--port", p, "--bind", h, "--no-open", "--foreground", "--restore", restoreFile) //nolint:gosec
+	args := []string{"--port", p, "--bind", h, "--no-open", "--foreground"}
+	if configPath != "" {
+		args = append(args, "--config", configPath)
+	} else {
+		args = append(args, "--restore", restoreFile)
+		if noRestart {
+			args = append(args, "--no-restart")
+		}
+		if noDelete {
+			args = append(args, "--no-delete")
+		}
+		if shareable {
+			args = append(args, "--shareable")
+		}
+	}
+	cmd := exec.Command(binPath, args...) //nolint:gosec
 	setSysProcAttr(cmd)
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start new process: %w", err)
@@ -1090,14 +1176,20 @@ func spawnNewProcess(addr string, restoreFile string) (*os.Process, error) {
 }
 
 func startBackground(addr string, filesByGroup map[string][]string, patternsByGroup map[string][]string, uploadedFiles []server.UploadedFileData) error {
-	restoreFile, err := server.WriteRestoreFile(server.RestoreData{Groups: filesByGroup, Patterns: patternsByGroup, UploadedFiles: uploadedFiles})
-	if err != nil {
-		return err
+	var restoreFile string
+	if configPath == "" {
+		var err error
+		restoreFile, err = server.WriteRestoreFile(server.RestoreData{Groups: filesByGroup, Patterns: patternsByGroup, UploadedFiles: uploadedFiles})
+		if err != nil {
+			return err
+		}
 	}
 
 	proc, err := spawnNewProcess(addr, restoreFile)
 	if err != nil {
-		os.Remove(restoreFile)
+		if restoreFile != "" {
+			os.Remove(restoreFile)
+		}
 		return err
 	}
 	pid := proc.Pid

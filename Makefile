@@ -15,10 +15,10 @@ test:
 	go test ./... -coverprofile=coverage.out -covermode=count -count=1
 
 build: generate
-	go build -ldflags=$(BUILD_LDFLAGS) -trimpath -o mo .
+	go build -ldflags=$(BUILD_LDFLAGS) -trimpath -o moted .
 
 dev: build
-	./mo -p 16275 --foreground $(ARGS)
+	./moted --config docs/config.example.yaml
 
 screenshot: build
 	cd internal/frontend && pnpm run screenshots

@@ -1,6 +1,16 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, vi } from "vitest";
+
+// jsdom does not implement IntersectionObserver
+vi.stubGlobal(
+  "IntersectionObserver",
+  class {
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+  },
+);
 
 // jsdom does not implement window.matchMedia
 Object.defineProperty(window, "matchMedia", {

@@ -1,8 +1,26 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from "react";
 import type { FileEntry, Group } from "../hooks/useApi";
 import { buildTree, type TreeNode } from "../utils/buildTree";
 import { FileContextMenu } from "./FileContextMenu";
 import { FileIcon } from "./FileIcon";
+import { formatRelativeTime, formatAbsoluteTime } from "../utils/time";
+import type { TimestampMode } from "./TimestampToggle";
+
+export interface TreeViewHandle {
+  expandAll: () => void;
+  collapseAll: () => void;
+}
+
+function collectDirPaths(nodes: TreeNode[]): string[] {
+  const paths: string[] = [];
+  for (const node of nodes) {
+    if (node.file == null) {
+      paths.push(node.fullPath);
+      paths.push(...collectDirPaths(node.children));
+    }
+  }
+  return paths;
+}
 
 const COLLAPSED_STORAGE_KEY = "mo-sidebar-tree-collapsed";
 
@@ -31,9 +49,11 @@ interface TreeViewProps {
   onMoveToGroup: (id: string, group: string) => void;
   onRemove: (id: string) => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
+  noDelete?: boolean;
+  timestampMode?: TimestampMode;
 }
 
-export function TreeView({
+export const TreeView = forwardRef<TreeViewHandle, TreeViewProps>(function TreeView({
   files,
   activeGroup,
   activeFileId,
@@ -45,7 +65,9 @@ export function TreeView({
   onMoveToGroup,
   onRemove,
   menuRef,
-}: TreeViewProps) {
+  noDelete,
+  timestampMode,
+}, ref) {
   const tree = useMemo(() => buildTree(files), [files]);
   const [prevGroup, setPrevGroup] = useState(activeGroup);
   const [collapsedPaths, setCollapsedPaths] = useState<Set<string>>(() =>
@@ -67,6 +89,11 @@ export function TreeView({
       /* ignore */
     }
   }, [collapsedPaths, activeGroup]);
+
+  useImperativeHandle(ref, () => ({
+    expandAll: () => setCollapsedPaths(new Set()),
+    collapseAll: () => setCollapsedPaths(new Set(collectDirPaths(tree.children))),
+  }), [tree]);
 
   const handleToggleCollapse = useCallback((path: string) => {
     setCollapsedPaths((prev) => {
@@ -98,11 +125,13 @@ export function TreeView({
           menuRef={menuRef}
           collapsedPaths={collapsedPaths}
           onToggleCollapse={handleToggleCollapse}
+          noDelete={noDelete}
+          timestampMode={timestampMode}
         />
       ))}
     </>
   );
-}
+});
 
 interface TreeNodeItemProps {
   node: TreeNode;
@@ -118,6 +147,8 @@ interface TreeNodeItemProps {
   menuRef: React.RefObject<HTMLDivElement | null>;
   collapsedPaths: Set<string>;
   onToggleCollapse: (path: string) => void;
+  noDelete?: boolean;
+  timestampMode?: TimestampMode;
 }
 
 function TreeNodeItem({
@@ -134,6 +165,8 @@ function TreeNodeItem({
   menuRef,
   collapsedPaths,
   onToggleCollapse,
+  noDelete,
+  timestampMode,
 }: TreeNodeItemProps) {
   if (node.file != null) {
     return (
@@ -150,6 +183,8 @@ function TreeNodeItem({
         onMoveToGroup={onMoveToGroup}
         onRemove={onRemove}
         menuRef={menuRef}
+        noDelete={noDelete}
+        timestampMode={timestampMode}
       />
     );
   }
@@ -198,6 +233,8 @@ function TreeNodeItem({
             menuRef={menuRef}
             collapsedPaths={collapsedPaths}
             onToggleCollapse={onToggleCollapse}
+            noDelete={noDelete}
+            timestampMode={timestampMode}
           />
         ))}
     </div>
@@ -217,6 +254,8 @@ interface FileNodeItemProps {
   onMoveToGroup: (id: string, group: string) => void;
   onRemove: (id: string) => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
+  noDelete?: boolean;
+  timestampMode?: TimestampMode;
 }
 
 function FileNodeItem({
@@ -232,6 +271,8 @@ function FileNodeItem({
   onMoveToGroup,
   onRemove,
   menuRef,
+  noDelete,
+  timestampMode,
 }: FileNodeItemProps) {
   const isActive = file.id === activeFileId;
 
@@ -249,6 +290,11 @@ function FileNodeItem({
       >
         <FileIcon uploaded={file.uploaded} />
         <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-6">{name}</span>
+        {timestampMode && timestampMode !== "off" && file.modTime && (
+          <span className="ml-auto shrink-0 text-xs text-gh-text-secondary font-normal pr-6" title={new Date(file.modTime).toLocaleString()}>
+            {timestampMode === "relative" ? formatRelativeTime(file.modTime) : formatAbsoluteTime(file.modTime)}
+          </span>
+        )}
       </button>
       <FileContextMenu
         file={file}
@@ -259,6 +305,7 @@ function FileNodeItem({
         onMoveToGroup={onMoveToGroup}
         onRemove={onRemove}
         menuRef={menuRef}
+        noDelete={noDelete}
       />
     </div>
   );

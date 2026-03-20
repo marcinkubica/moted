@@ -3,6 +3,7 @@ export interface FileEntry {
   id: string;
   path: string;
   uploaded?: boolean;
+  modTime?: string;
 }
 
 export interface Group {
@@ -18,6 +19,12 @@ export interface FileContent {
 export interface VersionInfo {
   version: string;
   revision: string;
+  noRestart?: boolean;
+  noDelete?: boolean;
+  noFileMove?: boolean;
+  noNewFileAutoSelect?: boolean;
+  shareable?: boolean;
+  trueFilenames?: boolean;
 }
 
 export async function fetchGroups(): Promise<Group[]> {

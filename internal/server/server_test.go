@@ -374,6 +374,184 @@ func TestHandleRestart(t *testing.T) {
 	})
 }
 
+func TestHandleVersion(t *testing.T) {
+	t.Run("returns version with flags false by default", func(t *testing.T) {
+		s := newTestState(t)
+		handler := NewHandler(s)
+		req := httptest.NewRequest("GET", "/_/api/version", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusOK)
+		}
+		var resp map[string]any
+		if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		if resp["noRestart"] != false {
+			t.Errorf("noRestart = %v, want false", resp["noRestart"])
+		}
+		if resp["noDelete"] != false {
+			t.Errorf("noDelete = %v, want false", resp["noDelete"])
+		}
+	})
+
+	t.Run("reflects Configure flags", func(t *testing.T) {
+		s := newTestState(t)
+		s.Configure(true, true, true, true, true, true)
+		handler := NewHandler(s)
+		req := httptest.NewRequest("GET", "/_/api/version", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		var resp map[string]any
+		if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		if resp["noRestart"] != true {
+			t.Errorf("noRestart = %v, want true", resp["noRestart"])
+		}
+		if resp["noDelete"] != true {
+			t.Errorf("noDelete = %v, want true", resp["noDelete"])
+		}
+		if resp["noFileMove"] != true {
+			t.Errorf("noFileMove = %v, want true", resp["noFileMove"])
+		}
+		if resp["noNewFileAutoSelect"] != true {
+			t.Errorf("noNewFileAutoSelect = %v, want true", resp["noNewFileAutoSelect"])
+		}
+		if resp["shareable"] != true {
+			t.Errorf("shareable = %v, want true", resp["shareable"])
+		}
+	})
+}
+
+func TestHandleRemoveFile_NoDelete(t *testing.T) {
+	idA := testIDa
+
+	t.Run("returns 204 when noDelete is false", func(t *testing.T) {
+		s := newTestState(t)
+		s.groups[DefaultGroup] = &Group{
+			Name:  DefaultGroup,
+			Files: []*FileEntry{{ID: idA, Name: "a.md", Path: "/a.md"}},
+		}
+		handler := NewHandler(s)
+		req := httptest.NewRequest("DELETE", "/_/api/files/"+string(idA), nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNoContent {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusNoContent)
+		}
+	})
+
+	t.Run("returns 403 when noDelete is true", func(t *testing.T) {
+		s := newTestState(t)
+		s.Configure(false, true, false, false, false, false)
+		s.groups[DefaultGroup] = &Group{
+			Name:  DefaultGroup,
+			Files: []*FileEntry{{ID: idA, Name: "a.md", Path: "/a.md"}},
+		}
+		handler := NewHandler(s)
+		req := httptest.NewRequest("DELETE", "/_/api/files/"+string(idA), nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusForbidden)
+		}
+		// File should still be present
+		s.mu.RLock()
+		count := len(s.groups[DefaultGroup].Files)
+		s.mu.RUnlock()
+		if count != 1 {
+			t.Errorf("file was removed despite noDelete; got %d files, want 1", count)
+		}
+	})
+}
+
+func TestHandleMoveFile_NoFileMove(t *testing.T) {
+	idA := testIDa
+
+	t.Run("returns 204 when noFileMove is false", func(t *testing.T) {
+		s := newTestState(t)
+		s.groups[DefaultGroup] = &Group{
+			Name:  DefaultGroup,
+			Files: []*FileEntry{{ID: idA, Name: "a.md", Path: "/a.md"}},
+		}
+		s.groups["other"] = &Group{Name: "other"}
+		handler := NewHandler(s)
+		body := strings.NewReader(`{"group":"other"}`)
+		req := httptest.NewRequest("PUT", "/_/api/files/"+string(idA)+"/group", body)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNoContent {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusNoContent)
+		}
+	})
+
+	t.Run("returns 403 when noFileMove is true", func(t *testing.T) {
+		s := newTestState(t)
+		s.Configure(false, false, true, false, false, false)
+		s.groups[DefaultGroup] = &Group{
+			Name:  DefaultGroup,
+			Files: []*FileEntry{{ID: idA, Name: "a.md", Path: "/a.md"}},
+		}
+		s.groups["other"] = &Group{Name: "other"}
+		handler := NewHandler(s)
+		body := strings.NewReader(`{"group":"other"}`)
+		req := httptest.NewRequest("PUT", "/_/api/files/"+string(idA)+"/group", body)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusForbidden)
+		}
+		// File should still be in the original group
+		s.mu.RLock()
+		count := len(s.groups[DefaultGroup].Files)
+		s.mu.RUnlock()
+		if count != 1 {
+			t.Errorf("file was moved despite noFileMove; got %d files in default, want 1", count)
+		}
+	})
+}
+
+func TestHandleRestart_NoRestart(t *testing.T) {
+	idA := testIDa
+
+	t.Run("returns 403 when noRestart is true", func(t *testing.T) {
+		s := newTestState(t)
+		s.Configure(true, false, false, false, false, false)
+		s.groups[DefaultGroup] = &Group{
+			Name:  DefaultGroup,
+			Files: []*FileEntry{{ID: idA, Name: "a.md", Path: "/a.md"}},
+		}
+		handler := NewHandler(s)
+		req := httptest.NewRequest("POST", "/_/api/restart", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusForbidden)
+		}
+		select {
+		case <-s.RestartCh():
+			t.Fatal("restartCh should not have received a signal")
+		default:
+		}
+	})
+}
+
 func TestHandleReorderFiles(t *testing.T) {
 	idA := testIDa
 	idB := testIDb
@@ -472,6 +650,50 @@ func TestHandleReorderFiles(t *testing.T) {
 			t.Fatalf("got status %d, want %d", rec.Code, http.StatusBadRequest)
 		}
 	})
+}
+
+func TestHandleGroups_ModTime(t *testing.T) {
+	dir := t.TempDir()
+	filePath := filepath.Join(dir, "a.md")
+	os.WriteFile(filePath, []byte("# A"), 0o600) //nolint:errcheck
+
+	s := newTestState(t)
+	s.AddFile(filePath, DefaultGroup) //nolint:errcheck
+
+	handler := NewHandler(s)
+	req := httptest.NewRequest("GET", "/_/api/groups", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got status %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	var groups []struct {
+		Name  string `json:"name"`
+		Files []struct {
+			ID      string `json:"id"`
+			ModTime string `json:"modTime"`
+		} `json:"files"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&groups); err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+
+	if len(groups) == 0 || len(groups[0].Files) == 0 {
+		t.Fatal("expected at least one group with one file")
+	}
+
+	modTime := groups[0].Files[0].ModTime
+	if modTime == "" {
+		t.Error("modTime should be set for a disk file")
+	}
+
+	// Verify it's valid RFC3339
+	if _, err := time.Parse(time.RFC3339, modTime); err != nil {
+		t.Errorf("modTime %q is not valid RFC3339: %v", modTime, err)
+	}
 }
 
 func TestAddPattern_InitialExpansion(t *testing.T) {
@@ -1399,6 +1621,98 @@ func TestUploadedFileContent(t *testing.T) {
 
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("got status %d, want %d", rec.Code, http.StatusBadRequest)
+		}
+	})
+}
+
+func TestHandleFileRawText(t *testing.T) {
+	t.Run("serves file as plain text when shareable", func(t *testing.T) {
+		s := newTestState(t)
+		s.Configure(false, false, false, false, true, false)
+
+		tmp := t.TempDir()
+		p := filepath.Join(tmp, "hello.md")
+		os.WriteFile(p, []byte("# Hello World\n\nSome content."), 0o644)
+
+		s.AddFile(p, DefaultGroup)
+		id := FileID(p)
+
+		handler := NewHandler(s)
+		req := httptest.NewRequest("GET", fmt.Sprintf("/_/api/files/%s/raw", id), nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusOK)
+		}
+
+		ct := rec.Header().Get("Content-Type")
+		if ct != "text/plain; charset=utf-8" {
+			t.Fatalf("got Content-Type %q, want %q", ct, "text/plain; charset=utf-8")
+		}
+
+		body := rec.Body.String()
+		if body != "# Hello World\n\nSome content." {
+			t.Fatalf("got body %q, want %q", body, "# Hello World\n\nSome content.")
+		}
+	})
+
+	t.Run("returns 403 when not shareable", func(t *testing.T) {
+		s := newTestState(t)
+		// shareable is false by default
+
+		tmp := t.TempDir()
+		p := filepath.Join(tmp, "hello.md")
+		os.WriteFile(p, []byte("# Hello"), 0o644)
+
+		s.AddFile(p, DefaultGroup)
+		id := FileID(p)
+
+		handler := NewHandler(s)
+		req := httptest.NewRequest("GET", fmt.Sprintf("/_/api/files/%s/raw", id), nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusForbidden)
+		}
+	})
+
+	t.Run("serves uploaded file as plain text", func(t *testing.T) {
+		s := newTestState(t)
+		s.Configure(false, false, false, false, true, false)
+		entry := s.AddUploadedFile("test.md", "# Uploaded", DefaultGroup)
+
+		handler := NewHandler(s)
+		req := httptest.NewRequest("GET", fmt.Sprintf("/_/api/files/%s/raw", entry.ID), nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusOK)
+		}
+
+		body := rec.Body.String()
+		if body != "# Uploaded" {
+			t.Fatalf("got body %q, want %q", body, "# Uploaded")
+		}
+	})
+
+	t.Run("returns 404 for unknown file", func(t *testing.T) {
+		s := newTestState(t)
+		s.Configure(false, false, false, false, true, false)
+
+		handler := NewHandler(s)
+		req := httptest.NewRequest("GET", "/_/api/files/nonexist/raw", nil)
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusNotFound)
 		}
 	})
 }

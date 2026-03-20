@@ -1,0 +1,35 @@
+---
+# Server
+bind: localhost
+port: 6275
+foreground: true
+quiet: true
+no-open: true
+
+# UI behaviour
+## do not allow to restart server via UI
+#no-restart: true
+
+## do not allow to delete files via UI
+#no-delete: true
+
+## shorthand for no-restart + no-delete
+read-only: true
+
+## expose document links in the address bar
+shareable: true
+
+#Groups
+groups:
+  - name: default
+    watch:
+      - ./**/*.md
+  - name: one due rike fake
+    watch:
+      - /Users/marcin/Projects/ai-watchman-reports/**/*.md
+
+  - name: two shorter
+    watch:
+      - /Users/marcin/Projects/ai-watchman/**/*.md
+
+

@@ -18,9 +18,11 @@ import type { FileEntry, Group } from "../hooks/useApi";
 import { removeFile, moveFile } from "../hooks/useApi";
 import { buildFileUrl } from "../utils/groups";
 import type { ViewMode } from "./ViewModeToggle";
-import { TreeView } from "./TreeView";
+import { TreeView, type TreeViewHandle } from "./TreeView";
 import { FileContextMenu } from "./FileContextMenu";
 import { FileIcon } from "./FileIcon";
+import { formatRelativeTime, formatAbsoluteTime } from "../utils/time";
+import type { TimestampMode } from "./TimestampToggle";
 
 const MIN_WIDTH = 180;
 const MAX_WIDTH = 480;
@@ -47,6 +49,8 @@ interface FileItemProps {
   onMoveToGroup: (id: string, group: string) => void;
   onRemove: (id: string) => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
+  noDelete?: boolean;
+  timestampMode?: TimestampMode;
 }
 
 function FileItem({
@@ -60,6 +64,8 @@ function FileItem({
   onMoveToGroup,
   onRemove,
   menuRef,
+  noDelete,
+  timestampMode,
 }: FileItemProps) {
   return (
     <div className="relative group/file">
@@ -74,6 +80,11 @@ function FileItem({
       >
         <FileIcon uploaded={file.uploaded} />
         <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-6">{file.name}</span>
+        {timestampMode && timestampMode !== "off" && file.modTime && (
+          <span className="ml-auto shrink-0 text-xs text-gh-text-secondary font-normal pr-6" title={new Date(file.modTime).toLocaleString()}>
+            {timestampMode === "relative" ? formatRelativeTime(file.modTime) : formatAbsoluteTime(file.modTime)}
+          </span>
+        )}
       </button>
       <FileContextMenu
         file={file}
@@ -84,6 +95,7 @@ function FileItem({
         onMoveToGroup={onMoveToGroup}
         onRemove={onRemove}
         menuRef={menuRef}
+        noDelete={noDelete}
       />
     </div>
   );
@@ -116,6 +128,10 @@ interface SidebarProps {
   viewMode: ViewMode;
   searchQuery: string | null;
   onSearchQueryChange: (query: string | null) => void;
+  treeViewRef?: React.Ref<TreeViewHandle>;
+  noDelete?: boolean;
+  noFileMove?: boolean;
+  timestampMode?: TimestampMode;
 }
 
 export function Sidebar({
@@ -127,6 +143,10 @@ export function Sidebar({
   viewMode,
   searchQuery,
   onSearchQueryChange,
+  treeViewRef,
+  noDelete,
+  noFileMove,
+  timestampMode,
 }: SidebarProps) {
   const allFiles = useMemo(() => {
     const currentGroup = groups.find((g) => g.name === activeGroup);
@@ -230,6 +250,7 @@ export function Sidebar({
   );
 
   const otherGroups = useMemo(() => {
+    if (noFileMove) return [];
     return [...groups]
       .filter((g) => g.name !== activeGroup)
       .sort((a, b) => {
@@ -237,7 +258,7 @@ export function Sidebar({
         if (b.name === "default") return -1;
         return a.name.localeCompare(b.name);
       });
-  }, [groups, activeGroup]);
+  }, [groups, activeGroup, noFileMove]);
 
   const handleMoveToGroup = useCallback(async (id: string, group: string) => {
     setMenuOpenId(null);
@@ -280,6 +301,7 @@ export function Sidebar({
       <nav className="flex flex-col pb-1">
         {viewMode === "tree" ? (
           <TreeView
+            ref={treeViewRef}
             files={files}
             activeGroup={activeGroup}
             activeFileId={activeFileId}
@@ -291,6 +313,8 @@ export function Sidebar({
             onMoveToGroup={handleMoveToGroup}
             onRemove={handleRemove}
             menuRef={menuRef}
+            noDelete={noDelete}
+            timestampMode={timestampMode}
           />
         ) : isSearching ? (
           files.map((f) => (
@@ -306,6 +330,8 @@ export function Sidebar({
               onMoveToGroup={handleMoveToGroup}
               onRemove={handleRemove}
               menuRef={menuRef}
+              noDelete={noDelete}
+              timestampMode={timestampMode}
             />
           ))
         ) : (
@@ -328,6 +354,8 @@ export function Sidebar({
                   onMoveToGroup={handleMoveToGroup}
                   onRemove={handleRemove}
                   menuRef={menuRef}
+                  noDelete={noDelete}
+                  timestampMode={timestampMode}
                 />
               ))}
             </SortableContext>
