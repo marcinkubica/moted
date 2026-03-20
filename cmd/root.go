@@ -21,11 +21,12 @@ import (
 	"syscall"
 	"time"
 
+	"moted/internal/backup"
+	"moted/internal/logfile"
+	"moted/internal/server"
+	"moted/version"
+
 	"github.com/k1LoW/donegroup"
-	"github.com/k1LoW/mo/internal/backup"
-	"github.com/k1LoW/mo/internal/logfile"
-	"github.com/k1LoW/mo/internal/server"
-	"github.com/k1LoW/mo/version"
 	"github.com/muesli/termenv"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"

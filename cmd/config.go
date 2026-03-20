@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/k1LoW/mo/internal/server"
+	"moted/internal/server"
+
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )

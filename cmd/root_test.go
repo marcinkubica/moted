@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/k1LoW/mo/internal/server"
+	"moted/internal/server"
 )
 
 func TestResolvePatterns_NoGlobChars(t *testing.T) {

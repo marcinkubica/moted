@@ -1,4 +1,4 @@
-module github.com/k1LoW/mo
+module moted
 
 go 1.26.0
 

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/k1LoW/mo/internal/xdg"
+	"moted/internal/xdg"
 )
 
 // Dir returns the path to the backup directory.

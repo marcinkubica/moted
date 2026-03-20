@@ -25,7 +25,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/k1LoW/mo/cmd"
+	"moted/cmd"
 )
 
 func main() {
