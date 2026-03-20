@@ -180,7 +180,7 @@ func init() {
 	rootCmd.Flags().StringArrayVar(&unwatchPatterns, "unwatch", nil, "Remove a watched glob pattern (repeatable)")
 	rootCmd.Flags().BoolVar(&clearBackup, "clear", false, "Clear saved session for the specified port")
 	rootCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output structured data as JSON to stdout")
-	rootCmd.Flags().BoolVar(&serverMode, "server", false, "Run in server mode (skip security prompts, allow remote access). Use with caution.")
+	rootCmd.Flags().BoolVar(&serverMode, "server", false, "Run in server mode. Use in trusted environments only.")
 	rootCmd.Flags().BoolVar(&noRestart, "no-restart", false, "Disable server restart from the browser UI")
 	rootCmd.Flags().BoolVar(&noDelete, "no-delete", false, "Disable file removal from the browser UI")
 	rootCmd.Flags().BoolVar(&noFileMove, "no-file-move", false, "Disable moving files between groups from the browser UI")
