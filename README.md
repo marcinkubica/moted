@@ -1,6 +1,6 @@
 <p align="center">
 <br><br><br>
-<img src="https://github.com/marcinkubica/moted/raw/main/images/logo.svg" width="120" alt="moted">
+<img src="https://github.com/marcinkubica/moted/raw/main/images/logo.svg?v=2" width="120" alt="moted">
 <br><br><br>
 </p>
 
