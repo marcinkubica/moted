@@ -8,41 +8,55 @@
 
 [![build](https://github.com/marcinkubica/moted/actions/workflows/ci.yml/badge.svg)](https://github.com/marcinkubica/moted/actions/workflows/ci.yml)
 
-> **moted:**, _mo_ but hosted
+> **moted:** _mo_ but hosted
 >
-> A fork of [k1LoW/mo](https://github.com/k1LoW/mo) with hosting/server features for shared environments in mind.
+> A fork of [k1LoW/mo](https://github.com/k1LoW/mo) with hosting/server features for shared environments in mind. Original local features of `mo` have been preserved.
 
-`moted` is a Markdown viewer that opens `.md` files in a browser, with the focus on hosting/server features for shared environments.
 
 > [!NOTE]
 > Project has been freshly forked and is in active development. Features may change.
+
+> [!WARNING]
+> Application is not ready for public exposure and should be run in trusted environments only.
+
 
 ## What's New in moted
 
 **Configuration & Deployment:**
 - YAML configuration file support (`--config`)
-- Read-only mode for shared/public deployments
+- Read-only mode for shared deployments
 - Shareable document links with clean URLs
-- True filename URLs (optional, falls back to hash IDs)
-- File timestamps (creation time and relative time)
+- True filename URLs (optional, falls back to hash IDs for duplicate filenames)
+- File timestamps (creation time or relative time)
 - Readiness endpoint for health checks
+- [docker](https://github.com/marcinkubica/moted/pkgs/container/moted) image
 
-**Enhanced UI:**
+**UI changes:**
 - Share raw file content via direct links
 - Configurable UI restrictions (disable rew start, delete, file moves)
 - Control auto-selection of newly added files
 - Navigate to files by filename in URL
 
----
+
 ## Planned Features
 - Google/Github SSO
 - GCS bucket watching
-- docker image (ghcr.io)
 
 
----
+> Quick start
+
+```sh
+docker compose up
+```
+This will start the server on port 8080 and serve files from the repository directory.
+
+or
+```sh
+make dev
+```
+
 >[!IMPORTANT]
->Original readme has been preserved in full below (fon now)
+>Original readme has been preserved in full below (for now).
 
 ## Features
 
@@ -63,6 +77,8 @@
 - Auto session backup and restore
 - Drag-and-drop file addition from the OS file manager (content is loaded in-memory; live-reload is not supported for dropped files)
 - Live-reload on save (for files opened via CLI)
+
+
 
 ## Install
 

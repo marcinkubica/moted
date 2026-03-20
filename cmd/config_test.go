@@ -17,7 +17,7 @@ no-restart: true
 no-delete: true
 read-only: true
 shareable: true
-dangerously-allow-remote-access: true
+server: true
 quiet: true
 groups:
   - name: docs
@@ -55,8 +55,8 @@ groups:
 		if !cfg.Shareable {
 			t.Error("Shareable should be true")
 		}
-		if !cfg.DangerouslyAllowRemoteAccess {
-			t.Error("DangerouslyAllowRemoteAccess should be true")
+		if !cfg.ServerMode {
+			t.Error("ServerMode should be true")
 		}
 		if !cfg.Quiet {
 			t.Error("Quiet should be true")
@@ -108,25 +108,25 @@ func TestApplyConfig(t *testing.T) {
 		origPort, origBind, origForeground := port, bind, foreground
 		origNoOpen, origNoRestart, origNoDelete := noOpen, noRestart, noDelete
 		origReadOnly, origShareable, origQuiet := readOnly, shareable, quiet
-		origDARA := dangerouslyAllowRemoteAccess
+		origServerMode := serverMode
 		defer func() {
 			port, bind, foreground = origPort, origBind, origForeground
 			noOpen, noRestart, noDelete = origNoOpen, origNoRestart, origNoDelete
 			readOnly, shareable, quiet = origReadOnly, origShareable, origQuiet
-			dangerouslyAllowRemoteAccess = origDARA
+			serverMode = origServerMode
 		}()
 
 		cfg := &configFile{
-			Port:                         9000,
-			Bind:                         "0.0.0.0",
-			Foreground:                   true,
-			NoOpen:                       true,
-			NoRestart:                    true,
-			NoDelete:                     true,
-			ReadOnly:                     true,
-			Shareable:                    true,
-			DangerouslyAllowRemoteAccess: true,
-			Quiet:                        true,
+			Port:       9000,
+			Bind:       "0.0.0.0",
+			Foreground: true,
+			NoOpen:     true,
+			NoRestart:  true,
+			NoDelete:   true,
+			ReadOnly:   true,
+			Shareable:  true,
+			ServerMode: true,
+			Quiet:      true,
 		}
 
 		applyConfig(rootCmd, cfg)
@@ -155,8 +155,8 @@ func TestApplyConfig(t *testing.T) {
 		if !shareable {
 			t.Error("shareable should be true")
 		}
-		if !dangerouslyAllowRemoteAccess {
-			t.Error("dangerouslyAllowRemoteAccess should be true")
+		if !serverMode {
+			t.Error("serverMode should be true")
 		}
 		if !quiet {
 			t.Error("quiet should be true")

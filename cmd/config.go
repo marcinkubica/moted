@@ -10,20 +10,20 @@ import (
 )
 
 type configFile struct {
-	Port                         int           `yaml:"port"`
-	Bind                         string        `yaml:"bind"`
-	Foreground                   bool          `yaml:"foreground"`
-	NoOpen                       bool          `yaml:"no-open"`
-	NoRestart                    bool          `yaml:"no-restart"`
-	NoDelete                     bool          `yaml:"no-delete"`
-	NoFileMove                   bool          `yaml:"no-file-move"`
-	NewFileNoAutoSelect          bool          `yaml:"newfile-no-autoselect"`
-	ReadOnly                     bool          `yaml:"read-only"`
-	Shareable                    bool          `yaml:"shareable"`
-	TrueFilenames                bool          `yaml:"true-filenames"`
-	DangerouslyAllowRemoteAccess bool          `yaml:"dangerously-allow-remote-access"`
-	Quiet                        bool          `yaml:"quiet"`
-	Groups                       []groupConfig `yaml:"groups"`
+	Port                int           `yaml:"port"`
+	Bind                string        `yaml:"bind"`
+	Foreground          bool          `yaml:"foreground"`
+	NoOpen              bool          `yaml:"no-open"`
+	NoRestart           bool          `yaml:"no-restart"`
+	NoDelete            bool          `yaml:"no-delete"`
+	NoFileMove          bool          `yaml:"no-file-move"`
+	NewFileNoAutoSelect bool          `yaml:"newfile-no-autoselect"`
+	ReadOnly            bool          `yaml:"read-only"`
+	Shareable           bool          `yaml:"shareable"`
+	TrueFilenames       bool          `yaml:"true-filenames"`
+	ServerMode          bool          `yaml:"server"`
+	Quiet               bool          `yaml:"quiet"`
+	Groups              []groupConfig `yaml:"groups"`
 }
 
 type groupConfig struct {
@@ -80,8 +80,8 @@ func applyConfig(cmd *cobra.Command, cfg *configFile) {
 	if !cmd.Flags().Changed("true-filenames") && cfg.TrueFilenames {
 		trueFilenames = true
 	}
-	if !cmd.Flags().Changed("dangerously-allow-remote-access") && cfg.DangerouslyAllowRemoteAccess {
-		dangerouslyAllowRemoteAccess = true
+	if !cmd.Flags().Changed("server") && cfg.ServerMode {
+		serverMode = true
 	}
 	if !cmd.Flags().Changed("quiet") && cfg.Quiet {
 		quiet = true

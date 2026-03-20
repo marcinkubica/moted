@@ -1,0 +1,18 @@
+services:
+  moted:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: moted
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount repository root (like `make dev`)
+      - .:/app:ro
+    environment:
+      # Override default port if needed
+      - PORT=
+    command:
+      - "--config"
+      - "/app/docs/config.example.yaml"
+    restart: unless-stopped
