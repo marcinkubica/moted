@@ -42,10 +42,6 @@
 - GCS bucket watching
 - docker image (ghcr.io)
 
-
->[!IMPORTANT]
->Original readme has been preserved in full below (fon now)
-
 > Quick start
 
 ```sh
@@ -57,6 +53,9 @@ or
 ```sh
 make dev
 ```
+
+>[!IMPORTANT]
+>Original readme has been preserved in full below (for now).
 
 ## Features
 
