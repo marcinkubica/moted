@@ -229,7 +229,7 @@ export function App() {
   );
 
   useEffect(() => {
-    document.title = activeFileName || "mo";
+    document.title = activeFileName || "moted";
   }, [activeFileName]);
 
   // Auto-close ToC panel when switching to a non-markdown file

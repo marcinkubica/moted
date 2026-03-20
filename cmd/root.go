@@ -66,66 +66,66 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "mo [flags] [FILE ...]",
-	Short: "mo is a Markdown viewer that opens .md files in a browser.",
-	Long: `mo is a Markdown viewer that opens .md files in a browser with live-reload.
+	Use:   "moted [flags] [FILE ...]",
+	Short: "moted is a Markdown server and a viewer that opens .md files in a browser.",
+	Long: `moted is a Markdown server and a viewer that opens .md files in a browser with live-reload.
 
 It runs in the background, serving Markdown files using a built-in React SPA,
 and automatically refreshes the browser when files are saved.
 
 Examples:
-  mo README.md                          Open a single file
-  mo README.md CHANGELOG.md docs/*.md   Open multiple files
-  mo spec.md --target design            Open in a named group
-  mo draft.md --port 6276               Use a different port
+  moted README.md                          Open a single file
+  moted README.md CHANGELOG.md docs/*.md   Open multiple files
+  moted spec.md --target design            Open in a named group
+  moted draft.md --port 6276               Use a different port
 
 Single Server, Multiple Files:
-  By default, mo runs a single server on port 6275.
-  If a mo server is already running on the same port, subsequent mo
+  By default, moted runs a single server on port 6275.
+  If a moted server is already running on the same port, subsequent moted
   invocations add files to the existing session instead of starting a new one.
 
-  $ mo README.md          # Starts a mo server in the background
-  $ mo CHANGELOG.md       # Adds the file to the running mo server
+  $ moted README.md          # Starts a moted server in the background
+  $ moted CHANGELOG.md       # Adds the file to the running moted server
 
   To run a completely separate session, use a different port:
 
-  $ mo draft.md -p 6276
+  $ moted draft.md -p 6276
 
 Groups:
   Files can be organized into named groups using the --target (-t) flag.
   Each group gets its own URL path (e.g., http://localhost:6275/design)
   and its own sidebar in the browser.
 
-  $ mo spec.md --target design      # Opens at /design
-  $ mo api.md --target design       # Adds to the "design" group
-  $ mo notes.md --target notes      # Opens at /notes
+  $ moted spec.md --target design      # Opens at /design
+  $ moted api.md --target design       # Adds to the "design" group
+  $ moted notes.md --target notes      # Opens at /notes
 
   If no --target is specified, files are added to the "default" group.
 
 Starting and Stopping:
-  mo runs in the background by default. The command returns
+  moted runs in the background by default. The command returns
   immediately, leaving the shell free for other work.
 
-  $ mo README.md            # Starts mo in the background
-  $ mo --status             # Shows all running mo servers
-  $ mo --shutdown           # Shuts it down
-  $ mo --restart            # Restarts it (preserving session)
+  $ moted README.md            # Starts moted in the background
+  $ moted --status             # Shows all running moted servers
+  $ moted --shutdown           # Shuts it down
+  $ moted --restart            # Restarts it (preserving session)
 
-  Use --foreground to keep the mo server in the foreground.
+  Use --foreground to keep the moted server in the foreground.
 
 Session Restore:
-  mo automatically saves session state. When starting a new server,
+  moted automatically saves session state. When starting a new server,
   the previous session is restored and merged with any specified files.
 
-  $ mo README.md CHANGELOG.md    # Start with two files
-  $ mo --shutdown                # Shut down the server
-  $ mo                           # Restores README.md and CHANGELOG.md
-  $ mo TODO.md                   # Restores previous session + adds TODO.md
+  $ moted README.md CHANGELOG.md    # Start with two files
+  $ moted --shutdown                # Shut down the server
+  $ moted                           # Restores README.md and CHANGELOG.md
+  $ moted TODO.md                   # Restores previous session + adds TODO.md
 
   Use --clear to remove a saved session.
 
 Live-Reload:
-  mo watches all opened files for changes using filesystem notifications.
+  moted watches all opened files for changes using filesystem notifications.
   When a file is saved, the browser automatically re-renders the content.
 
 Supported Markdown Features:
@@ -141,13 +141,13 @@ Glob Patterns:
   watched and new files are automatically added.
   Cannot be combined with file arguments.
 
-  $ mo -w '**/*.md'                   Watch all .md files recursively
-  $ mo -w 'docs/**/*.md' -t docs      Watch docs/ tree in "docs" group
-  $ mo -w '*.md' -w 'docs/**/*.md'    Watch multiple patterns
-  $ mo --unwatch '**/*.md'            Stop watching a pattern
+  $ moted -w '**/*.md'                   Watch all .md files recursively
+  $ moted -w 'docs/**/*.md' -t docs      Watch docs/ tree in "docs" group
+  $ moted -w '*.md' -w 'docs/**/*.md'    Watch multiple patterns
+  $ moted --unwatch '**/*.md'            Stop watching a pattern
 
 WARNING: --bind with a non-loopback address:
-  Binding to a non-localhost address (e.g. 0.0.0.0) exposes mo to the
+  Binding to a non-localhost address (e.g. 0.0.0.0) exposes moted to the
   network without any authentication. Remote clients can read any file
   accessible by this user, browse the filesystem via glob patterns, and
   shut down the server. A confirmation prompt is shown before starting.`,
@@ -169,13 +169,13 @@ func init() {
 	rootCmd.Flags().BoolVar(&open, "open", false, "Always open browser (even when adding to existing group)")
 	rootCmd.Flags().BoolVar(&noOpen, "no-open", false, "Do not open browser automatically")
 	rootCmd.MarkFlagsMutuallyExclusive("open", "no-open")
-	rootCmd.Flags().BoolVar(&shutdownServer, "shutdown", false, "Shut down the running mo server on the specified port")
-	rootCmd.Flags().BoolVar(&restartServer, "restart", false, "Restart the running mo server on the specified port")
+	rootCmd.Flags().BoolVar(&shutdownServer, "shutdown", false, "Shut down the running moted server on the specified port")
+	rootCmd.Flags().BoolVar(&restartServer, "restart", false, "Restart the running moted server on the specified port")
 	rootCmd.MarkFlagsMutuallyExclusive("shutdown", "restart")
 	rootCmd.Flags().StringVar(&restore, "restore", "", "Restore state from file (internal use)")
 	rootCmd.Flags().MarkHidden("restore") //nolint:errcheck
-	rootCmd.Flags().BoolVar(&foreground, "foreground", false, "Run mo server in foreground (do not background)")
-	rootCmd.Flags().BoolVar(&statusServer, "status", false, "Show status of all running mo servers")
+	rootCmd.Flags().BoolVar(&foreground, "foreground", false, "Run moted server in foreground (do not background)")
+	rootCmd.Flags().BoolVar(&statusServer, "status", false, "Show status of all running moted servers")
 	rootCmd.Flags().StringArrayVarP(&watchPatterns, "watch", "w", nil, "Glob pattern to watch for matching files (repeatable)")
 	rootCmd.Flags().StringArrayVar(&unwatchPatterns, "unwatch", nil, "Remove a watched glob pattern (repeatable)")
 	rootCmd.Flags().BoolVar(&clearBackup, "clear", false, "Clear saved session for the specified port")
@@ -222,24 +222,24 @@ func run(cmd *cobra.Command, args []string) error {
 
 	if clearBackup {
 		if !backup.Exists(port) {
-			fmt.Fprintf(os.Stderr, "mo: no saved session for port %d\n", port)
+			fmt.Fprintf(os.Stderr, "moted: no saved session for port %d\n", port)
 			return nil
 		}
-		fmt.Fprintf(os.Stderr, "mo: clear saved session for port %d? [Y/n] ", port)
+		fmt.Fprintf(os.Stderr, "moted: clear saved session for port %d? [Y/n] ", port)
 		scanner := bufio.NewScanner(os.Stdin)
 		if !scanner.Scan() {
-			fmt.Fprintln(os.Stderr, "mo: canceled")
+			fmt.Fprintln(os.Stderr, "moted: canceled")
 			return nil
 		}
 		ans := strings.TrimSpace(scanner.Text())
 		if ans != "" && strings.ToLower(ans) != "y" && strings.ToLower(ans) != "yes" {
-			fmt.Fprintln(os.Stderr, "mo: canceled")
+			fmt.Fprintln(os.Stderr, "moted: canceled")
 			return nil
 		}
 		if err := backup.Remove(port); err != nil {
 			return err
 		}
-		fmt.Fprintf(os.Stderr, "mo: cleared saved session for port %d\n", port)
+		fmt.Fprintf(os.Stderr, "moted: cleared saved session for port %d\n", port)
 		return nil
 	}
 
@@ -293,7 +293,7 @@ func run(cmd *cobra.Command, args []string) error {
 		if ok, err := checkRemoteAccess(bind); err != nil {
 			return err
 		} else if !ok {
-			fmt.Fprintln(os.Stderr, "mo: canceled")
+			fmt.Fprintln(os.Stderr, "moted: canceled")
 			return nil
 		}
 		filesByGroup, patternsByGroup, err := buildGroupsFromConfig(cfg)
@@ -360,7 +360,7 @@ func run(cmd *cobra.Command, args []string) error {
 	var uploadedFiles []server.UploadedFileData
 	if len(restoredFiles) > 0 || len(restoredPatterns) > 0 || len(restoredUploads) > 0 {
 		slog.Info("restoring session from backup", "port", port)
-		fmt.Fprintf(os.Stderr, "mo: restoring previous session for port %d\n", port)
+		fmt.Fprintf(os.Stderr, "moted: restoring previous session for port %d\n", port)
 		filesByGroup = mergeGroups(restoredFiles, filesByGroup)
 		patternsByGroup = mergeGroups(restoredPatterns, patternsByGroup)
 		uploadedFiles = restoredUploads
@@ -370,7 +370,7 @@ func run(cmd *cobra.Command, args []string) error {
 	if ok, err := checkRemoteAccess(bind); err != nil {
 		return err
 	} else if !ok {
-		fmt.Fprintln(os.Stderr, "mo: canceled")
+		fmt.Fprintln(os.Stderr, "moted: canceled")
 		return nil
 	}
 
@@ -461,7 +461,7 @@ func checkRemoteAccess(bind string) (bool, error) {
 	o := termenv.NewOutput(os.Stderr)
 	c := func(s string) termenv.Style { return o.String(s).Foreground(o.Color("208")) }
 	fmt.Fprintln(os.Stderr, c("SECURITY WARNING:").Bold(),
-		c(fmt.Sprintf("Binding to %s instead of localhost. mo has no authentication -- remote clients can:", bind)))
+		c(fmt.Sprintf("Binding to %s instead of localhost. moted has no authentication -- remote clients can:", bind)))
 	fmt.Fprintln(os.Stderr, c("  - Read any file accessible by this user"))
 	fmt.Fprintln(os.Stderr, c("  - Browse the filesystem via glob patterns"))
 	fmt.Fprintln(os.Stderr, c("  - Shut down or restart the server"))
@@ -533,7 +533,7 @@ func tryAddToExisting(addr string, files []string, patterns []string) bool {
 	added := len(files) + len(patterns)
 	slog.Info("added to existing server", "files", len(files), "patterns", len(patterns), "addr", addr)
 	emitServeOutput(addr, deeplinks, false)
-	fmt.Fprintf(os.Stderr, "mo: added %d item(s) to http://%s\n", added, addr)
+	fmt.Fprintf(os.Stderr, "moted: added %d item(s) to http://%s\n", added, addr)
 
 	if isNewGroup || open {
 		openBrowser(addr)
@@ -772,7 +772,7 @@ type probeResult struct {
 	groups []string
 }
 
-// probeServer checks that a mo server is running on addr by calling
+// probeServer checks that a moted server is running on addr by calling
 // GET /_/api/status and validating the response contains a version field.
 func probeServer(addr string, timeout ...time.Duration) (*probeResult, error) {
 	t := probeTimeoutDefault
@@ -782,7 +782,7 @@ func probeServer(addr string, timeout ...time.Duration) (*probeResult, error) {
 	client := &http.Client{Timeout: t}
 	resp, err := client.Get(fmt.Sprintf("http://%s/_/api/status", addr))
 	if err != nil {
-		return nil, fmt.Errorf("no mo server found on %s", addr)
+		return nil, fmt.Errorf("no moted server found on %s", addr)
 	}
 	defer resp.Body.Close()
 
@@ -798,7 +798,7 @@ func probeServer(addr string, timeout ...time.Duration) (*probeResult, error) {
 		} `json:"groups"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil || status.Version == "" {
-		return nil, fmt.Errorf("server on %s is not a mo instance", addr)
+		return nil, fmt.Errorf("server on %s is not a moted instance", addr)
 	}
 
 	groups := make([]string, len(status.Groups))
@@ -825,7 +825,7 @@ func doShutdown(addr string) error {
 	}
 
 	slog.Info("shutdown request sent", "addr", addr)
-	fmt.Fprintf(os.Stderr, "mo: shutdown request sent to %s\n", addr)
+	fmt.Fprintf(os.Stderr, "moted: shutdown request sent to %s\n", addr)
 	return nil
 }
 
@@ -846,7 +846,7 @@ func doRestart(addr string) error {
 	}
 
 	slog.Info("restart request sent", "addr", addr)
-	fmt.Fprintf(os.Stderr, "mo: restart request sent to %s\n", addr)
+	fmt.Fprintf(os.Stderr, "moted: restart request sent to %s\n", addr)
 	return nil
 }
 
@@ -885,7 +885,7 @@ func doUnwatch(addr string, patterns []string, groupName string) error {
 		}
 
 		slog.Info("pattern removed", "pattern", pat, "group", groupName)
-		fmt.Fprintf(os.Stderr, "mo: unwatched %s\n", pat)
+		fmt.Fprintf(os.Stderr, "moted: unwatched %s\n", pat)
 	}
 
 	return nil
@@ -912,7 +912,7 @@ func doStatus() error {
 		if jsonOutput {
 			writeJSON([]jsonStatusEntry{})
 		} else {
-			fmt.Fprintln(os.Stderr, "mo: no mo server found")
+			fmt.Fprintln(os.Stderr, "moted: no moted server found")
 		}
 		return nil
 	}
@@ -988,7 +988,7 @@ func doStatus() error {
 		}
 		writeJSON(jsonEntries)
 	} else if !found {
-		fmt.Fprintln(os.Stderr, "mo: no mo server found")
+		fmt.Fprintln(os.Stderr, "moted: no moted server found")
 	}
 
 	return nil
@@ -1007,12 +1007,12 @@ func discoverPorts() []int {
 	var ports []int
 	for _, e := range entries {
 		name := e.Name()
-		// Match "mo-{port}.log"
-		if !strings.HasPrefix(name, "mo-") || !strings.HasSuffix(name, ".log") {
+		// Match "moted-{port}.log"
+		if !strings.HasPrefix(name, "moted-") || !strings.HasSuffix(name, ".log") {
 			continue
 		}
-		// Exclude rotated backups like "mo-6275.log.1"
-		raw := strings.TrimSuffix(strings.TrimPrefix(name, "mo-"), ".log")
+		// Exclude rotated backups like "moted-6275.log.1"
+		raw := strings.TrimSuffix(strings.TrimPrefix(name, "moted-"), ".log")
 		p, err := strconv.Atoi(raw)
 		if err != nil {
 			continue
@@ -1220,7 +1220,7 @@ func startBackground(addr string, filesByGroup map[string][]string, patternsByGr
 		}
 	}
 	emitServeOutput(addr, deeplinks, true)
-	fmt.Fprintf(os.Stderr, "mo: serving at http://%s (pid %d)\n", addr, pid)
+	fmt.Fprintf(os.Stderr, "moted: serving at http://%s (pid %d)\n", addr, pid)
 
 	openBrowser(addr)
 
