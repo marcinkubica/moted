@@ -19,7 +19,13 @@ import { useActiveHeading } from "./hooks/useActiveHeading";
 import { useScrollRestoration, SCROLL_SESSION_KEY } from "./hooks/useScrollRestoration";
 import type { Group, VersionInfo } from "./hooks/useApi";
 import { fetchGroups, fetchVersion, removeFile, reorderFiles } from "./hooks/useApi";
-import { allFileIds, parseGroupFromPath, parseFileIdFromSearch, parseFilenameFromSearch, groupToPath } from "./utils/groups";
+import {
+  allFileIds,
+  parseGroupFromPath,
+  parseFileIdFromSearch,
+  parseFilenameFromSearch,
+  groupToPath,
+} from "./utils/groups";
 import { isMarkdownFile } from "./utils/filetype";
 
 const VIEWMODE_STORAGE_KEY = "mo-sidebar-viewmode";
@@ -66,7 +72,9 @@ export function App() {
   const knownFileIds = useRef<Set<string>>(new Set());
   const treeViewRef = useRef<TreeViewHandle>(null);
   const [treeAllCollapsed, setTreeAllCollapsed] = useState(false);
-  const [initialFilename, setInitialFilename] = useState<string | null>(() => parseFilenameFromSearch(window.location.search));
+  const [initialFilename, setInitialFilename] = useState<string | null>(() =>
+    parseFilenameFromSearch(window.location.search),
+  );
   const [initialFileId, setInitialFileId] = useState<string | null>(() => {
     const fromUrl = parseFileIdFromSearch(window.location.search);
     if (fromUrl) return fromUrl;
@@ -196,9 +204,10 @@ export function App() {
           const group = groups.find((g) => g.name === activeGroup);
           const file = group?.files.find((f) => f.id === activeFileId);
           const isUnique = file && group!.files.filter((f) => f.name === file.name).length === 1;
-          search = file && isUnique
-            ? `?filename=${encodeURIComponent(file.name)}`
-            : `?file=${activeFileId}`;
+          search =
+            file && isUnique
+              ? `?filename=${encodeURIComponent(file.name)}`
+              : `?file=${activeFileId}`;
         } else {
           search = `?file=${activeFileId}`;
         }
@@ -375,7 +384,14 @@ export function App() {
           />
         )}
         <SearchToggle isOpen={searchQuery != null} onToggle={handleSearchToggle} />
-        <TimestampToggle mode={timestampMode} onToggle={() => setTimestampMode((v) => v === "off" ? "relative" : v === "relative" ? "absolute" : "off")} />
+        <TimestampToggle
+          mode={timestampMode}
+          onToggle={() =>
+            setTimestampMode((v) =>
+              v === "off" ? "relative" : v === "relative" ? "absolute" : "off",
+            )
+          }
+        />
         <div className="ml-auto flex items-center gap-2">
           <WidthToggle isWide={isWide} onToggle={() => setIsWide((v) => !v)} />
           <ThemeToggle />

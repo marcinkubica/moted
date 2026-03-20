@@ -81,8 +81,13 @@ function FileItem({
         <FileIcon uploaded={file.uploaded} />
         <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-6">{file.name}</span>
         {timestampMode && timestampMode !== "off" && file.modTime && (
-          <span className="ml-auto shrink-0 text-xs text-gh-text-secondary font-normal pr-6" title={new Date(file.modTime).toLocaleString()}>
-            {timestampMode === "relative" ? formatRelativeTime(file.modTime) : formatAbsoluteTime(file.modTime)}
+          <span
+            className="ml-auto shrink-0 text-xs text-gh-text-secondary font-normal pr-6"
+            title={new Date(file.modTime).toLocaleString()}
+          >
+            {timestampMode === "relative"
+              ? formatRelativeTime(file.modTime)
+              : formatAbsoluteTime(file.modTime)}
           </span>
         )}
       </button>

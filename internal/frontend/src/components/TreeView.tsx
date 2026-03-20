@@ -53,21 +53,24 @@ interface TreeViewProps {
   timestampMode?: TimestampMode;
 }
 
-export const TreeView = forwardRef<TreeViewHandle, TreeViewProps>(function TreeView({
-  files,
-  activeGroup,
-  activeFileId,
-  menuOpenId,
-  otherGroups,
-  onFileSelect,
-  onMenuToggle,
-  onOpenInNewTab,
-  onMoveToGroup,
-  onRemove,
-  menuRef,
-  noDelete,
-  timestampMode,
-}, ref) {
+export const TreeView = forwardRef<TreeViewHandle, TreeViewProps>(function TreeView(
+  {
+    files,
+    activeGroup,
+    activeFileId,
+    menuOpenId,
+    otherGroups,
+    onFileSelect,
+    onMenuToggle,
+    onOpenInNewTab,
+    onMoveToGroup,
+    onRemove,
+    menuRef,
+    noDelete,
+    timestampMode,
+  },
+  ref,
+) {
   const tree = useMemo(() => buildTree(files), [files]);
   const [prevGroup, setPrevGroup] = useState(activeGroup);
   const [collapsedPaths, setCollapsedPaths] = useState<Set<string>>(() =>
@@ -90,10 +93,14 @@ export const TreeView = forwardRef<TreeViewHandle, TreeViewProps>(function TreeV
     }
   }, [collapsedPaths, activeGroup]);
 
-  useImperativeHandle(ref, () => ({
-    expandAll: () => setCollapsedPaths(new Set()),
-    collapseAll: () => setCollapsedPaths(new Set(collectDirPaths(tree.children))),
-  }), [tree]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      expandAll: () => setCollapsedPaths(new Set()),
+      collapseAll: () => setCollapsedPaths(new Set(collectDirPaths(tree.children))),
+    }),
+    [tree],
+  );
 
   const handleToggleCollapse = useCallback((path: string) => {
     setCollapsedPaths((prev) => {
@@ -291,8 +298,13 @@ function FileNodeItem({
         <FileIcon uploaded={file.uploaded} />
         <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-6">{name}</span>
         {timestampMode && timestampMode !== "off" && file.modTime && (
-          <span className="ml-auto shrink-0 text-xs text-gh-text-secondary font-normal pr-6" title={new Date(file.modTime).toLocaleString()}>
-            {timestampMode === "relative" ? formatRelativeTime(file.modTime) : formatAbsoluteTime(file.modTime)}
+          <span
+            className="ml-auto shrink-0 text-xs text-gh-text-secondary font-normal pr-6"
+            title={new Date(file.modTime).toLocaleString()}
+          >
+            {timestampMode === "relative"
+              ? formatRelativeTime(file.modTime)
+              : formatAbsoluteTime(file.modTime)}
           </span>
         )}
       </button>
