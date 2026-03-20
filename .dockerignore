@@ -1,0 +1,47 @@
+# Git
+.git
+.github
+.gitignore
+
+# Build artifacts
+moted
+*.exe
+*.test
+*.out
+coverage.out
+
+# Frontend
+internal/frontend/node_modules
+internal/frontend/dist
+internal/frontend/.vite
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+!README.md
+images/
+docs/
+
+# CI/CD
+.tagpr
+.golangci.yml
+.goreleaser.yml
+.gostyle.yml
+.octocov.yml
+
+# Test data
+testdata/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Data
+data/

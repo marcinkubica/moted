@@ -39,30 +39,30 @@ const (
 )
 
 var (
-	target                       string
-	port                         int
-	bind                         string
-	open                         bool
-	noOpen                       bool
-	restore                      string
-	shutdownServer               bool
-	restartServer                bool
-	foreground                   bool
-	statusServer                 bool
-	watchPatterns                []string
-	unwatchPatterns              []string
-	clearBackup                  bool
-	jsonOutput                   bool
-	dangerouslyAllowRemoteAccess bool
-	noRestart                    bool
-	noDelete                     bool
-	noFileMove                   bool
-	noNewFileAutoSelect          bool
-	readOnly                     bool
-	shareable                    bool
-	trueFilenames                bool
-	configPath                   string
-	quiet                        bool
+	target              string
+	port                int
+	bind                string
+	open                bool
+	noOpen              bool
+	restore             string
+	shutdownServer      bool
+	restartServer       bool
+	foreground          bool
+	statusServer        bool
+	watchPatterns       []string
+	unwatchPatterns     []string
+	clearBackup         bool
+	jsonOutput          bool
+	serverMode          bool
+	noRestart           bool
+	noDelete            bool
+	noFileMove          bool
+	noNewFileAutoSelect bool
+	readOnly            bool
+	shareable           bool
+	trueFilenames       bool
+	configPath          string
+	quiet               bool
 )
 
 var rootCmd = &cobra.Command{
@@ -180,7 +180,7 @@ func init() {
 	rootCmd.Flags().StringArrayVar(&unwatchPatterns, "unwatch", nil, "Remove a watched glob pattern (repeatable)")
 	rootCmd.Flags().BoolVar(&clearBackup, "clear", false, "Clear saved session for the specified port")
 	rootCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output structured data as JSON to stdout")
-	rootCmd.Flags().BoolVar(&dangerouslyAllowRemoteAccess, "dangerously-allow-remote-access", false, "Allow remote access without authentication. Recommended only for trusted networks.")
+	rootCmd.Flags().BoolVar(&serverMode, "server", false, "Run in server mode (skip security prompts, allow remote access). Use with caution.")
 	rootCmd.Flags().BoolVar(&noRestart, "no-restart", false, "Disable server restart from the browser UI")
 	rootCmd.Flags().BoolVar(&noDelete, "no-delete", false, "Disable file removal from the browser UI")
 	rootCmd.Flags().BoolVar(&noFileMove, "no-file-move", false, "Disable moving files between groups from the browser UI")
@@ -449,9 +449,13 @@ func loadRestoreData(path string) (map[string][]string, map[string][]string, []s
 // Returns (true, nil) to proceed, (false, nil) if the user declined, or (false, err) on scan error.
 func checkRemoteAccess(bind string) (bool, error) {
 	if !isLoopbackBind(bind) {
-		slog.Warn("binding to non-loopback address", "bind", bind, "dangerously-allow-remote-access", dangerouslyAllowRemoteAccess)
+		if serverMode {
+			slog.Info("binding to non-loopback address", "bind", bind, "server", true)
+		} else {
+			slog.Warn("binding to non-loopback address", "bind", bind)
+		}
 	}
-	if isLoopbackBind(bind) || dangerouslyAllowRemoteAccess {
+	if isLoopbackBind(bind) || serverMode {
 		return true, nil
 	}
 	o := termenv.NewOutput(os.Stderr)
