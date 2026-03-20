@@ -29,6 +29,7 @@
 - True filename URLs (optional, falls back to hash IDs for duplicate filenames)
 - File timestamps (creation time or relative time)
 - Readiness endpoint for health checks
+- [docker](https://github.com/marcinkubica/moted/pkgs/container/moted) image
 
 **UI changes:**
 - Share raw file content via direct links
@@ -40,7 +41,7 @@
 ## Planned Features
 - Google/Github SSO
 - GCS bucket watching
-- docker image (ghcr.io)
+
 
 > Quick start
 
