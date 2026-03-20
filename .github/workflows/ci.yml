@@ -43,17 +43,11 @@ jobs:
 
       - name: Run lint
         if: runner.os == 'Linux'
-        uses: reviewdog/action-golangci-lint@f9bba13753278f6a73b27a56a3ffb1bfda90ed71 # v2.8.0
+        uses: reviewdog/action-golangci-lint@c76cceaaab89abe74e649d2e34c6c9adc26662d2 # 2.10.0
         with:
           fail_level: error
           go_version_file: go.mod
           cache: false
-
-      - name: Run gostyle
-        if: runner.os == 'Linux'
-        uses: k1LoW/gostyle-action@e1b847d37b3041c5fdb8b911bcf00b350779ca61 # v1.5.1
-        with:
-          config-file: .gostyle.yml
 
       - name: Run tests
         run: make ci
