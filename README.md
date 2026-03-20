@@ -37,6 +37,7 @@
 ## Planned Features
 - Google/Github SSO
 - GCS bucket watching
+- docker image (ghcr.io)
 
 
 ---
