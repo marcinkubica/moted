@@ -1102,6 +1102,7 @@ func NewHandler(state *State) http.Handler {
 	mux.HandleFunc("GET /_/api/status", handleStatus(state))
 	mux.HandleFunc("GET /_/api/version", handleVersion(state))
 	mux.HandleFunc("GET /_/events", handleSSE(state))
+	mux.HandleFunc("GET /readyz", handleReadyz())
 	mux.HandleFunc("GET /", handleSPA())
 
 	return mux
@@ -1565,6 +1566,12 @@ func handleVersion(state *State) http.HandlerFunc {
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			slog.Error("failed to encode version response", "error", err)
 		}
+	}
+}
+
+func handleReadyz() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
