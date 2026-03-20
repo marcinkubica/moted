@@ -63,7 +63,7 @@ var (
 	shareable           bool
 	trueFilenames       bool
 	configPath          string
-	quiet               bool
+	shouty              bool
 )
 
 var rootCmd = &cobra.Command{
@@ -190,7 +190,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&shareable, "shareable", false, "Reflect the active file in the browser URL for easy sharing and deep linking")
 	rootCmd.Flags().BoolVar(&trueFilenames, "true-filenames", false, "Use actual filenames in URLs instead of hash IDs (uses ?filename= param)")
 	rootCmd.Flags().StringVar(&configPath, "config", "", "Path to YAML config file (mutually exclusive with file arguments, --target, and --watch)")
-	rootCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Suppress file listing output on startup")
+	rootCmd.Flags().BoolVar(&shouty, "shouty", false, "Show detailed file listing on startup")
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -749,22 +749,49 @@ func printDeeplinks(entries []deeplinkEntry) {
 	}
 }
 
-// emitServeOutput writes the serve result (server URL + deeplinks) to stdout.
-// In JSON mode it emits a single JSON object; in text mode it prints the URL and deeplinks.
+// emitServeOutput writes the serve result to stdout.
+// In JSON mode it emits a single JSON object.
+// In text mode: default shows summary, --shouty shows full file list.
 func emitServeOutput(addr string, deeplinks []deeplinkEntry, printURL bool) {
-	if quiet {
-		return
-	}
 	if jsonOutput {
 		writeJSON(jsonServeOutput{
 			URL:   fmt.Sprintf("http://%s", addr),
 			Files: deeplinksToJSON(deeplinks),
 		})
-	} else {
+		return
+	}
+
+	// Count files per group
+	groupCounts := make(map[string]int)
+	for _, d := range deeplinks {
+		// Extract group from URL: http://addr/group?file=... or http://addr?file=...
+		group := server.DefaultGroup
+		if strings.Contains(d.URL, "/?file=") {
+			group = server.DefaultGroup
+		} else {
+			// Find group in URL
+			parts := strings.Split(d.URL, "/")
+			if len(parts) > 3 {
+				group = parts[3]
+			}
+		}
+		groupCounts[group]++
+	}
+
+	if shouty {
+		// Full listing
 		if printURL {
 			fmt.Fprintf(os.Stdout, "http://%s\n", addr)
 		}
 		printDeeplinks(deeplinks)
+	} else {
+		// Summary only
+		if printURL {
+			fmt.Fprintf(os.Stdout, "http://%s\n", addr)
+		}
+		for group, count := range groupCounts {
+			fmt.Fprintf(os.Stdout, "  %s: %d file(s)\n", group, count)
+		}
 	}
 }
 

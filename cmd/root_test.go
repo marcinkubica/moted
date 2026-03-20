@@ -408,6 +408,8 @@ func TestEmitServeOutput(t *testing.T) {
 
 	t.Run("text mode with printURL prints URL line", func(t *testing.T) {
 		jsonOutput = false
+		shouty = true
+		defer func() { shouty = false }()
 
 		r, w, err := os.Pipe()
 		if err != nil {
@@ -435,6 +437,8 @@ func TestEmitServeOutput(t *testing.T) {
 
 	t.Run("text mode without printURL omits URL line", func(t *testing.T) {
 		jsonOutput = false
+		shouty = true
+		defer func() { shouty = false }()
 
 		r, w, err := os.Pipe()
 		if err != nil {
