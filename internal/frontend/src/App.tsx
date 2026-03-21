@@ -33,6 +33,7 @@ const WIDTH_STORAGE_KEY = "mo-layout-width";
 const TIMESTAMPS_STORAGE_KEY = "mo-timestamp-mode";
 
 export function App() {
+
   const [groups, setGroups] = useState<Group[]>([]);
   const [activeGroup, setActiveGroup] = useState<string>(
     () => parseGroupFromPath(window.location.pathname) || "default",
@@ -369,7 +370,9 @@ export function App() {
           onGroupChange={handleGroupChange}
         />
         <ViewModeToggle viewMode={currentViewMode} onToggle={handleViewModeToggle} />
-        {currentViewMode === "tree" && (
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${currentViewMode === "tree" ? "max-w-10 opacity-100" : "max-w-0 opacity-0 -ml-3"}`}
+        >
           <TreeCollapseToggle
             collapsed={treeAllCollapsed}
             onToggle={() => {
@@ -382,7 +385,7 @@ export function App() {
               }
             }}
           />
-        )}
+        </div>
         <SearchToggle isOpen={searchQuery != null} onToggle={handleSearchToggle} />
         <TimestampToggle
           mode={timestampMode}

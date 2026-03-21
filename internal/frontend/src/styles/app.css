@@ -179,6 +179,15 @@ body,
   color: var(--fgColor-danger);
 }
 
+/* Button press+glow effect */
+button {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+button:active {
+  transform: scale(0.9);
+  box-shadow: 0 0 10px 2px rgba(88, 166, 255, 0.5);
+}
+
 [data-theme="dark"] .markdown-body {
   color-scheme: dark;
   --fgColor-accent: #4493f8;
