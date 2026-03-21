@@ -378,7 +378,10 @@ function HighlightedView({ content, language }: { content: string; language: str
 }
 
 function headingSlug(text: string): string {
-  return text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-");
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-");
 }
 
 function RawView({ content }: { content: string }) {
@@ -393,11 +396,15 @@ function RawView({ content }: { content: string }) {
       .catch(() => {
         if (!cancelled) {
           codeToHtml(content, { lang: "text", theme: "github-dark" })
-            .then((r) => { if (!cancelled) setHtml(r); })
+            .then((r) => {
+              if (!cancelled) setHtml(r);
+            })
             .catch(() => {});
         }
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [content]);
 
   const injected = useMemo(() => {
@@ -426,7 +433,11 @@ function RawView({ content }: { content: string }) {
   if (injected) {
     return <div className="[&_pre]:!rounded-none" dangerouslySetInnerHTML={{ __html: injected }} />;
   }
-  return <pre><code>{content}</code></pre>;
+  return (
+    <pre>
+      <code>{content}</code>
+    </pre>
+  );
 }
 
 export function MarkdownViewer({
@@ -618,7 +629,10 @@ export function MarkdownViewer({
         if (match) {
           const level = match[1].length;
           const text = match[2].replace(/\s*#+\s*$/, "").trim();
-          const id = text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-");
+          const id = text
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, "")
+            .replace(/\s+/g, "-");
           newHeadings.push({ id, text, level });
         }
       }
@@ -661,13 +675,18 @@ export function MarkdownViewer({
       <div className="shrink-0 flex flex-col gap-2 -mr-4 -mt-8 sticky -top-5.5">
         {isMarkdown && <TocToggle isTocOpen={isTocOpen} onToggle={onTocToggle} />}
         {isMarkdown && <FontSizeToggle onSizeChange={setFontSize} />}
-        {isMarkdown && <RawToggle isRaw={isRawView} onToggle={() => {
-          setFading(true);
-          setTimeout(() => {
-            setIsRawView((v) => !v);
-            setFading(false);
-          }, 150);
-        }} />}
+        {isMarkdown && (
+          <RawToggle
+            isRaw={isRawView}
+            onToggle={() => {
+              setFading(true);
+              setTimeout(() => {
+                setIsRawView((v) => !v);
+                setFading(false);
+              }, 150);
+            }}
+          />
+        )}
         <CopyButton content={content} />
         {!noDelete && <RemoveButton onRemove={onRemoveFile} />}
         {shareable && <ShareButton />}

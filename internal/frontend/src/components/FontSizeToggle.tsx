@@ -98,7 +98,9 @@ export function FontSizeToggle({ onSizeChange }: FontSizeToggleProps) {
         aria-label={isExpanded ? "Close font size controls" : "Adjust font size"}
         title={isExpanded ? "Close font size controls" : "Adjust font size"}
       >
-        <span className="text-sm font-semibold select-none">A<span className="text-[10px]">A</span></span>
+        <span className="text-sm font-semibold select-none">
+          A<span className="text-[10px]">A</span>
+        </span>
       </button>
 
       <div

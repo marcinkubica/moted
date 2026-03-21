@@ -8,7 +8,13 @@ import { ViewModeToggle, type ViewMode } from "./components/ViewModeToggle";
 import { SearchToggle } from "./components/SearchToggle";
 import { TimestampToggle, type TimestampMode } from "./components/TimestampToggle";
 import { TreeCollapseToggle } from "./components/TreeCollapseToggle";
-import { SortToggle, cycleSortMode, saveSortMode, getInitialSortMode, type SortMode } from "./components/SortToggle";
+import {
+  SortToggle,
+  cycleSortMode,
+  saveSortMode,
+  getInitialSortMode,
+  type SortMode,
+} from "./components/SortToggle";
 import type { TreeViewHandle } from "./components/TreeView";
 import { RestartButton } from "./components/RestartButton";
 import { DropOverlay } from "./components/DropOverlay";
@@ -34,7 +40,6 @@ const WIDTH_STORAGE_KEY = "mo-layout-width";
 const TIMESTAMPS_STORAGE_KEY = "mo-timestamp-mode";
 
 export function App() {
-
   const [groups, setGroups] = useState<Group[]>([]);
   const [activeGroup, setActiveGroup] = useState<string>(
     () => parseGroupFromPath(window.location.pathname) || "default",

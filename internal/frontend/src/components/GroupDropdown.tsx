@@ -31,10 +31,7 @@ export function GroupDropdown({ groups, activeGroup, onGroupChange }: GroupDropd
   if (groups.length === 1 && activeGroupExists) {
     if (isDefault) return null;
     return (
-      <span
-        className="text-sm text-gh-header-text font-bold text-fade-in"
-        key={activeGroup}
-      >
+      <span className="text-sm text-gh-header-text font-bold text-fade-in" key={activeGroup}>
         {activeGroup}
       </span>
     );

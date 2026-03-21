@@ -186,8 +186,12 @@ body,
 
 /* ToC heading highlight flash */
 @keyframes toc-flash {
-  0% { background-color: rgba(142, 194, 253, 0.3); }
-  100% { background-color: transparent; }
+  0% {
+    background-color: rgba(142, 194, 253, 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 .toc-highlight {
   animation: toc-flash 6s ease-out;
@@ -202,8 +206,12 @@ pre .toc-highlight {
 
 /* Text fade-in animation for group name changes */
 @keyframes text-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .text-fade-in {
   animation: text-fade-in 0.15s ease-out;
@@ -211,7 +219,9 @@ pre .toc-highlight {
 
 /* Button press+glow effect */
 button {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 button:active {
   transform: scale(0.9);
