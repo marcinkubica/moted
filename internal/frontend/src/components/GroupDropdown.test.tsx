@@ -41,7 +41,7 @@ describe("GroupDropdown", () => {
         onGroupChange={() => {}}
       />,
     );
-    expect(screen.getByRole("button")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select group" })).toBeInTheDocument();
   });
 
   it("shows group name in button for non-default active group", () => {
@@ -52,7 +52,7 @@ describe("GroupDropdown", () => {
         onGroupChange={() => {}}
       />,
     );
-    expect(screen.getByText("docs")).toBeInTheDocument();
+    expect(screen.getByText("docs", { selector: "span.font-bold" })).toBeInTheDocument();
   });
 
   it("opens dropdown on click and shows all groups", async () => {
@@ -65,7 +65,7 @@ describe("GroupDropdown", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button"));
+    await user.click(screen.getByRole("button", { name: "Select group" }));
     expect(screen.getByText("(default)")).toBeInTheDocument();
     expect(screen.getByText("docs")).toBeInTheDocument();
     expect(screen.getByText("design")).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe("GroupDropdown", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button"));
+    await user.click(screen.getByRole("button", { name: "Select group" }));
     await user.click(screen.getByText("docs"));
     expect(onGroupChange).toHaveBeenCalledWith("docs");
   });
@@ -97,11 +97,12 @@ describe("GroupDropdown", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button"));
+    await user.click(screen.getByRole("button", { name: "Select group" }));
     expect(screen.getByText("docs")).toBeInTheDocument();
 
     await user.click(screen.getByText("docs"));
-    // After selection, dropdown items should be gone; only the trigger button remains
-    expect(screen.queryByText("(default)")).not.toBeInTheDocument();
+    // After selection, dropdown should be hidden (opacity-0), not removed from DOM
+    const dropdown = screen.getByText("(default)").closest("div[class*='absolute']");
+    expect(dropdown).toHaveClass("opacity-0");
   });
 });

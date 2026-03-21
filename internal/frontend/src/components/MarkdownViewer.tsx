@@ -12,6 +12,7 @@ import mermaid from "mermaid";
 import { fetchFileContent, openRelativeFile } from "../hooks/useApi";
 import { RawToggle } from "./RawToggle";
 import { TocToggle } from "./TocToggle";
+import { FontSizeToggle } from "./FontSizeToggle";
 import { CopyButton } from "./CopyButton";
 import { RemoveButton } from "./RemoveButton";
 import { ShareButton } from "./ShareButton";
@@ -446,6 +447,20 @@ export function MarkdownViewer({
   const [loading, setLoading] = useState(true);
   const [isRawView, setIsRawView] = useState(false);
   const [fading, setFading] = useState(false);
+  const [fontSize, setFontSize] = useState(() => {
+    try {
+      const stored = localStorage.getItem("mo-font-size");
+      if (stored) {
+        const parsed = parseInt(stored, 10);
+        if (!isNaN(parsed) && parsed >= 12 && parsed <= 24) {
+          return parsed;
+        }
+      }
+    } catch {
+      // localStorage may not be available
+    }
+    return 14;
+  });
   const articleRef = useRef<HTMLElement>(null);
   const [prevFetchKey, setPrevFetchKey] = useState({ fileId, revision });
 
@@ -639,11 +654,13 @@ export function MarkdownViewer({
       <article
         ref={articleRef}
         className={`markdown-body min-w-0 flex-1 transition-opacity duration-150${isWide ? " markdown-body--wide" : ""}${fading ? " opacity-0" : " opacity-100"}`}
+        style={{ fontSize: `${fontSize}px`, transition: "font-size 0.2s ease-in-out" }}
       >
         {renderedContent}
       </article>
       <div className="shrink-0 flex flex-col gap-2 -mr-4 -mt-8 sticky -top-5.5">
         {isMarkdown && <TocToggle isTocOpen={isTocOpen} onToggle={onTocToggle} />}
+        {isMarkdown && <FontSizeToggle onSizeChange={setFontSize} />}
         {isMarkdown && <RawToggle isRaw={isRawView} onToggle={() => {
           setFading(true);
           setTimeout(() => {

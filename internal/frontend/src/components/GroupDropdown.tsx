@@ -30,14 +30,22 @@ export function GroupDropdown({ groups, activeGroup, onGroupChange }: GroupDropd
   // Single group and it's the active one: show name only (no dropdown)
   if (groups.length === 1 && activeGroupExists) {
     if (isDefault) return null;
-    return <span className="text-sm text-gh-header-text font-bold">{activeGroup}</span>;
+    return (
+      <span
+        className="text-sm text-gh-header-text font-bold text-fade-in"
+        key={activeGroup}
+      >
+        {activeGroup}
+      </span>
+    );
   }
 
   return (
     <div ref={ref} className="relative">
       <button
-        className="flex items-center gap-1.5 bg-transparent border border-gh-border rounded-md p-1.5 cursor-pointer text-sm text-gh-header-text hover:bg-gh-bg-hover transition-colors duration-150"
+        className="flex items-center gap-1.5 bg-transparent border border-gh-border rounded-md p-1.5 cursor-pointer text-sm text-gh-header-text hover:bg-gh-bg-hover transition-all duration-150"
         onClick={() => setOpen((v) => !v)}
+        aria-label="Select group"
       >
         <svg
           className="size-5 shrink-0"
@@ -51,56 +59,60 @@ export function GroupDropdown({ groups, activeGroup, onGroupChange }: GroupDropd
           <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" />
           <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5" />
         </svg>
-        {!isDefault && (
-          <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-32 font-bold">
-            {activeGroup}
-          </span>
-        )}
+        <span
+          className={`overflow-hidden text-ellipsis whitespace-nowrap font-bold transition-all duration-200 ease-in-out ${
+            isDefault ? "opacity-0 max-w-0" : "opacity-100 max-w-32"
+          }`}
+        >
+          {activeGroup}
+        </span>
         <svg className="size-3 shrink-0" fill="currentColor" viewBox="0 0 12 12">
           <path d="M2.5 4.5 6 8l3.5-3.5z" />
         </svg>
       </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 min-w-40 bg-gh-bg-sidebar border border-gh-border rounded-md shadow-lg z-10 py-1 max-h-60 overflow-y-auto">
-          {[...groups]
-            .sort((a, b) => {
-              if (a.name === "default") return 1;
-              if (b.name === "default") return -1;
-              return a.name.localeCompare(b.name);
-            })
-            .map((g) => (
-              <button
-                key={g.name}
-                className={`flex items-center gap-2 w-full px-3 py-1.5 border-none cursor-pointer text-left text-xs transition-colors duration-150 ${
-                  g.name === activeGroup
-                    ? "bg-gh-bg-active text-gh-text font-semibold"
-                    : "bg-transparent text-gh-text-secondary hover:bg-gh-bg-hover"
-                }`}
-                onClick={() => {
-                  onGroupChange(g.name);
-                  setOpen(false);
-                }}
-              >
-                {g.name === activeGroup ? (
-                  <svg
-                    className="size-3.5 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                  </svg>
-                ) : (
-                  <span className="inline-block size-3.5 shrink-0" />
-                )}
-                <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-                  {g.name === "default" ? "(default)" : g.name}
-                </span>
-              </button>
-            ))}
-        </div>
-      )}
+      <div
+        className={`absolute left-0 top-full mt-1 min-w-40 bg-gh-bg-sidebar border border-gh-border rounded-md shadow-lg z-10 py-1 max-h-60 overflow-y-auto overflow-hidden transition-all duration-200 ease-in-out ${
+          open ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
+        }`}
+      >
+        {[...groups]
+          .sort((a, b) => {
+            if (a.name === "default") return 1;
+            if (b.name === "default") return -1;
+            return a.name.localeCompare(b.name);
+          })
+          .map((g) => (
+            <button
+              key={g.name}
+              className={`flex items-center gap-2 w-full px-3 py-1.5 border-none cursor-pointer text-left text-xs transition-colors duration-150 ${
+                g.name === activeGroup
+                  ? "bg-gh-bg-active text-gh-text font-semibold"
+                  : "bg-transparent text-gh-text-secondary hover:bg-gh-bg-hover"
+              }`}
+              onClick={() => {
+                onGroupChange(g.name);
+                setOpen(false);
+              }}
+            >
+              {g.name === activeGroup ? (
+                <svg
+                  className="size-3.5 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+              ) : (
+                <span className="inline-block size-3.5 shrink-0" />
+              )}
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                {g.name === "default" ? "(default)" : g.name}
+              </span>
+            </button>
+          ))}
+      </div>
     </div>
   );
 }
