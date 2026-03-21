@@ -32,11 +32,13 @@
 - [docker](https://github.com/marcinkubica/moted/pkgs/container/moted) image
 
 **UI changes:**
+- Toolbar is now sticky
+- Adjustable font size
+- Improved ToC panel with scroll tracking and highlighting
 - Share raw file content via direct links
-- Configurable UI restrictions (disable rew start, delete, file moves)
 - Control auto-selection of newly added files
 - Navigate to files by filename in URL
-
+- Smooth animations and transitions
 
 ## Planned Features
 - Google/Github SSO
