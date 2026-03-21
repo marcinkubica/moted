@@ -179,6 +179,27 @@ body,
   color: var(--fgColor-danger);
 }
 
+/* Scroll offset for heading anchors */
+.markdown-body [id] {
+  scroll-margin-top: 1.5rem;
+}
+
+/* ToC heading highlight flash */
+@keyframes toc-flash {
+  0% { background-color: rgba(142, 194, 253, 0.3); }
+  100% { background-color: transparent; }
+}
+.toc-highlight {
+  animation: toc-flash 6s ease-out;
+  border-radius: 8px;
+}
+
+pre .toc-highlight {
+  display: block;
+  width: 100%;
+  border-radius: 0;
+}
+
 /* Button press+glow effect */
 button {
   transition: transform 0.15s ease, box-shadow 0.15s ease;

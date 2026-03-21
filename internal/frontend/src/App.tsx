@@ -365,7 +365,11 @@ export function App() {
 
   const handleHeadingClick = useCallback((id: string) => {
     const el = document.getElementById(id);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.remove("toc-highlight");
+    void el.offsetWidth;
+    el.classList.add("toc-highlight");
   }, []);
 
   return (
@@ -500,13 +504,15 @@ export function App() {
             )}
           </div>
         </main>
-        {tocOpen && (
+        <div
+          className={`overflow-hidden transition-[max-width,opacity] duration-200 ease-in-out ${tocOpen ? "max-w-[480px] opacity-100" : "max-w-0 opacity-0"}`}
+        >
           <TocPanel
             headings={headings}
             activeHeadingId={activeHeadingId}
             onHeadingClick={handleHeadingClick}
           />
-        )}
+        </div>
       </div>
       <RestartButton version={version} noRestart={version?.noRestart} />
       {isDragging && <DropOverlay />}

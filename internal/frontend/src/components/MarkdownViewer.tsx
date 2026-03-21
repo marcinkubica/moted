@@ -376,8 +376,56 @@ function HighlightedView({ content, language }: { content: string; language: str
   );
 }
 
+function headingSlug(text: string): string {
+  return text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-");
+}
+
 function RawView({ content }: { content: string }) {
-  return <HighlightedView content={content} language="markdown" />;
+  const [html, setHtml] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    codeToHtml(content, { lang: "markdown", theme: "github-dark" })
+      .then((result) => {
+        if (!cancelled) setHtml(result);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          codeToHtml(content, { lang: "text", theme: "github-dark" })
+            .then((r) => { if (!cancelled) setHtml(r); })
+            .catch(() => {});
+        }
+      });
+    return () => { cancelled = true; };
+  }, [content]);
+
+  const injected = useMemo(() => {
+    if (!html) return "";
+    const lines = content.split("\n");
+    const anchors: { line: number; id: string }[] = [];
+    lines.forEach((l, i) => {
+      const m = l.match(/^(#{1,6})\s+(.+)/);
+      if (m) {
+        const text = m[2].replace(/\s*#+\s*$/, "").trim();
+        anchors.push({ line: i, id: headingSlug(text) });
+      }
+    });
+    if (anchors.length === 0) return html;
+    // Inject anchors into the rendered HTML by finding the corresponding line spans
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const lineEls = doc.querySelectorAll(".line");
+    for (const { line, id } of anchors) {
+      const el = lineEls[line];
+      if (el) el.setAttribute("id", id);
+    }
+    return doc.body.innerHTML;
+  }, [html, content]);
+
+  if (injected) {
+    return <div className="[&_pre]:!rounded-none" dangerouslySetInnerHTML={{ __html: injected }} />;
+  }
+  return <pre><code>{content}</code></pre>;
 }
 
 export function MarkdownViewer({
@@ -536,7 +584,7 @@ export function MarkdownViewer({
 
   const prevHeadingsKey = useRef("");
   useEffect(() => {
-    const newHeadings: TocHeading[] = [];
+    let newHeadings: TocHeading[] = [];
     if (!isRawView && articleRef.current) {
       const els = articleRef.current.querySelectorAll("h1, h2, h3, h4, h5, h6");
       for (const el of els) {
@@ -548,13 +596,24 @@ export function MarkdownViewer({
           });
         }
       }
+    } else if (isRawView && content) {
+      const lines = content.split("\n");
+      for (const line of lines) {
+        const match = line.match(/^(#{1,6})\s+(.+)/);
+        if (match) {
+          const level = match[1].length;
+          const text = match[2].replace(/\s*#+\s*$/, "").trim();
+          const id = text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-");
+          newHeadings.push({ id, text, level });
+        }
+      }
     }
     const key = newHeadings.map((h) => `${h.id}:${h.level}:${h.text}`).join(",");
     if (key !== prevHeadingsKey.current) {
       prevHeadingsKey.current = key;
       onHeadingsChange(newHeadings);
     }
-  }, [isRawView, renderedContent, onHeadingsChange]);
+  }, [isRawView, renderedContent, content, onHeadingsChange]);
 
   const onContentRenderedRef = useRef(onContentRendered);
   useLayoutEffect(() => {
