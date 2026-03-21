@@ -161,7 +161,8 @@ describe("Sidebar", () => {
         onSearchQueryChange={() => {}}
       />,
     );
-    expect(screen.queryByPlaceholderText("Search files...")).not.toBeInTheDocument();
+    const input = screen.queryByPlaceholderText("Search files...");
+    expect(input?.closest(".overflow-hidden")).toHaveClass("max-h-0");
   });
 
   it("filters files by search query", () => {
