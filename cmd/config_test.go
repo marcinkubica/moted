@@ -18,7 +18,7 @@ no-delete: true
 read-only: true
 shareable: true
 server: true
-quiet: true
+shouty: true
 groups:
   - name: docs
     watch:
@@ -58,8 +58,8 @@ groups:
 		if !cfg.ServerMode {
 			t.Error("ServerMode should be true")
 		}
-		if !cfg.Quiet {
-			t.Error("Quiet should be true")
+		if !cfg.Shouty {
+			t.Error("Shouty should be true")
 		}
 		if len(cfg.Groups) != 2 {
 			t.Fatalf("len(Groups) = %d, want 2", len(cfg.Groups))
@@ -107,12 +107,12 @@ func TestApplyConfig(t *testing.T) {
 		// Save and restore all vars touched by applyConfig
 		origPort, origBind, origForeground := port, bind, foreground
 		origNoOpen, origNoRestart, origNoDelete := noOpen, noRestart, noDelete
-		origReadOnly, origShareable, origQuiet := readOnly, shareable, quiet
+		origReadOnly, origShareable, origShouty := readOnly, shareable, shouty
 		origServerMode := serverMode
 		defer func() {
 			port, bind, foreground = origPort, origBind, origForeground
 			noOpen, noRestart, noDelete = origNoOpen, origNoRestart, origNoDelete
-			readOnly, shareable, quiet = origReadOnly, origShareable, origQuiet
+			readOnly, shareable, shouty = origReadOnly, origShareable, origShouty
 			serverMode = origServerMode
 		}()
 
@@ -126,7 +126,7 @@ func TestApplyConfig(t *testing.T) {
 			ReadOnly:   true,
 			Shareable:  true,
 			ServerMode: true,
-			Quiet:      true,
+			Shouty:     true,
 		}
 
 		applyConfig(rootCmd, cfg)
@@ -158,8 +158,8 @@ func TestApplyConfig(t *testing.T) {
 		if !serverMode {
 			t.Error("serverMode should be true")
 		}
-		if !quiet {
-			t.Error("quiet should be true")
+		if !shouty {
+			t.Error("shouty should be true")
 		}
 	})
 

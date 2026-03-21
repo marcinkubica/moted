@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/k1LoW/mo/internal/xdg"
+	"moted/internal/xdg"
 )
 
 // Dir returns the path to the backup directory.
@@ -15,7 +15,7 @@ func Dir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(stateHome, "mo", "backup"), nil
+	return filepath.Join(stateHome, "moted", "backup"), nil
 }
 
 // Path returns the backup file path for the given port.
@@ -24,7 +24,7 @@ func Path(port int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, fmt.Sprintf("mo-%d.json", port)), nil
+	return filepath.Join(dir, fmt.Sprintf("moted-%d.json", port)), nil
 }
 
 // Save atomically writes data to the backup file for the given port.
@@ -43,7 +43,7 @@ func Save(port int, data any) (retErr error) {
 		return fmt.Errorf("failed to marshal backup data: %w", err)
 	}
 
-	tmp, err := os.CreateTemp(dir, "mo-backup-*.tmp")
+	tmp, err := os.CreateTemp(dir, "moted-backup-*.tmp")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}

@@ -25,10 +25,18 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/k1LoW/mo/cmd"
+	"moted/cmd"
 )
 
 func main() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
+	opts := &slog.HandlerOptions{
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.MessageKey {
+				a.Key = "message"
+			}
+			return a
+		},
+	}
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, opts)))
 	cmd.Execute()
 }

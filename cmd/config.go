@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/k1LoW/mo/internal/server"
+	"moted/internal/server"
+
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -22,7 +23,7 @@ type configFile struct {
 	Shareable           bool          `yaml:"shareable"`
 	TrueFilenames       bool          `yaml:"true-filenames"`
 	ServerMode          bool          `yaml:"server"`
-	Quiet               bool          `yaml:"quiet"`
+	Shouty              bool          `yaml:"shouty"`
 	Groups              []groupConfig `yaml:"groups"`
 }
 
@@ -83,8 +84,8 @@ func applyConfig(cmd *cobra.Command, cfg *configFile) {
 	if !cmd.Flags().Changed("server") && cfg.ServerMode {
 		serverMode = true
 	}
-	if !cmd.Flags().Changed("quiet") && cfg.Quiet {
-		quiet = true
+	if !cmd.Flags().Changed("shouty") && cfg.Shouty {
+		shouty = true
 	}
 }
 

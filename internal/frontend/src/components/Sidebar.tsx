@@ -81,8 +81,13 @@ function FileItem({
         <FileIcon uploaded={file.uploaded} />
         <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-6">{file.name}</span>
         {timestampMode && timestampMode !== "off" && file.modTime && (
-          <span className="ml-auto shrink-0 text-xs text-gh-text-secondary font-normal pr-6" title={new Date(file.modTime).toLocaleString()}>
-            {timestampMode === "relative" ? formatRelativeTime(file.modTime) : formatAbsoluteTime(file.modTime)}
+          <span
+            className="ml-auto shrink-0 text-xs text-gh-text-secondary font-normal pr-6"
+            title={new Date(file.modTime).toLocaleString()}
+          >
+            {timestampMode === "relative"
+              ? formatRelativeTime(file.modTime)
+              : formatAbsoluteTime(file.modTime)}
           </span>
         )}
       </button>
@@ -280,7 +285,7 @@ export function Sidebar({
 
   return (
     <aside
-      className="relative bg-gh-bg-sidebar border-r border-gh-border flex flex-col overflow-y-auto shrink-0"
+      className="relative bg-gh-bg-sidebar border-r border-gh-border flex flex-col shrink-0"
       style={{ width }}
     >
       {searchOpen && (
@@ -298,7 +303,7 @@ export function Sidebar({
           />
         </div>
       )}
-      <nav className="flex flex-col pb-1">
+      <nav className="flex flex-col pb-1 flex-1 overflow-y-auto">
         {viewMode === "tree" ? (
           <TreeView
             ref={treeViewRef}

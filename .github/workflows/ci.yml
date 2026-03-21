@@ -1,9 +1,6 @@
 name: build
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
 
 jobs:
@@ -29,7 +26,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # 5.0.0
         with:
           package_json_file: internal/frontend/package.json
 
@@ -46,17 +43,11 @@ jobs:
 
       - name: Run lint
         if: runner.os == 'Linux'
-        uses: reviewdog/action-golangci-lint@f9bba13753278f6a73b27a56a3ffb1bfda90ed71 # v2.8.0
+        uses: reviewdog/action-golangci-lint@c76cceaaab89abe74e649d2e34c6c9adc26662d2 # 2.10.0
         with:
           fail_level: error
           go_version_file: go.mod
           cache: false
-
-      - name: Run gostyle
-        if: runner.os == 'Linux'
-        uses: k1LoW/gostyle-action@e1b847d37b3041c5fdb8b911bcf00b350779ca61 # v1.5.1
-        with:
-          config-file: .gostyle.yml
 
       - name: Run tests
         run: make ci

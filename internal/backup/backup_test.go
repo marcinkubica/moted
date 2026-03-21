@@ -130,7 +130,7 @@ func TestPath(t *testing.T) {
 		t.Fatalf("Path returned error: %v", err)
 	}
 
-	want := dir + "/mo/backup/mo-6275.json"
+	want := dir + "/moted/backup/moted-6275.json"
 	if p != want {
 		t.Fatalf("got %s, want %s", p, want)
 	}
@@ -141,7 +141,7 @@ func TestSaveCreatesDirectory(t *testing.T) {
 	t.Setenv("XDG_STATE_HOME", dir)
 
 	// Directory does not exist yet
-	backupDir := dir + "/mo/backup"
+	backupDir := dir + "/moted/backup"
 	if _, err := os.Stat(backupDir); !os.IsNotExist(err) {
 		t.Fatal("backup directory should not exist before Save")
 	}

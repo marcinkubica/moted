@@ -20,8 +20,7 @@ function makeFetch(versionOverrides: object) {
     if (url === "/_/api/version") {
       return Promise.resolve({
         ok: true,
-        json: () =>
-          Promise.resolve({ version: "0.0.0", revision: "test", ...versionOverrides }),
+        json: () => Promise.resolve({ version: "0.0.0", revision: "test", ...versionOverrides }),
       });
     }
     if (url.includes("/_/api/files/") && url.includes("/content")) {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/k1LoW/mo/internal/server"
+	"moted/internal/server"
 )
 
 func TestResolvePatterns_NoGlobChars(t *testing.T) {
@@ -408,6 +408,8 @@ func TestEmitServeOutput(t *testing.T) {
 
 	t.Run("text mode with printURL prints URL line", func(t *testing.T) {
 		jsonOutput = false
+		shouty = true
+		defer func() { shouty = false }()
 
 		r, w, err := os.Pipe()
 		if err != nil {
@@ -435,6 +437,8 @@ func TestEmitServeOutput(t *testing.T) {
 
 	t.Run("text mode without printURL omits URL line", func(t *testing.T) {
 		jsonOutput = false
+		shouty = true
+		defer func() { shouty = false }()
 
 		r, w, err := os.Pipe()
 		if err != nil {
@@ -492,6 +496,58 @@ func TestEmitServeOutput(t *testing.T) {
 		}
 		if output.Files[0].Name != "upload.md" {
 			t.Errorf("got Name %q, want %q", output.Files[0].Name, "upload.md")
+		}
+	})
+
+	t.Run("server mode suppresses text output", func(t *testing.T) {
+		jsonOutput = false
+		serverMode = true
+		defer func() { serverMode = false }()
+
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		oldStdout := os.Stdout
+		os.Stdout = w
+
+		emitServeOutput("localhost:6275", entries, true)
+
+		w.Close()
+		os.Stdout = oldStdout
+
+		var buf bytes.Buffer
+		buf.ReadFrom(r) //nolint:errcheck
+
+		output := buf.String()
+		if output != "" {
+			t.Errorf("expected no output in server mode, got %q", output)
+		}
+	})
+
+	t.Run("config mode suppresses text output", func(t *testing.T) {
+		jsonOutput = false
+		configPath = "/tmp/config.yaml"
+		defer func() { configPath = "" }()
+
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		oldStdout := os.Stdout
+		os.Stdout = w
+
+		emitServeOutput("localhost:6275", entries, true)
+
+		w.Close()
+		os.Stdout = oldStdout
+
+		var buf bytes.Buffer
+		buf.ReadFrom(r) //nolint:errcheck
+
+		output := buf.String()
+		if output != "" {
+			t.Errorf("expected no output in config mode, got %q", output)
 		}
 	})
 }
