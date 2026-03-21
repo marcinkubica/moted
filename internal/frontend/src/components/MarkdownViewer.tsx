@@ -582,7 +582,7 @@ export function MarkdownViewer({
       >
         {renderedContent}
       </article>
-      <div className="shrink-0 flex flex-col gap-2 -mr-4 -mt-4">
+      <div className="shrink-0 flex flex-col gap-2 -mr-4 -mt-8 sticky -top-5.5">
         {isMarkdown && <TocToggle isTocOpen={isTocOpen} onToggle={onTocToggle} />}
         {isMarkdown && <RawToggle isRaw={isRawView} onToggle={() => setIsRawView((v) => !v)} />}
         <CopyButton content={content} />
