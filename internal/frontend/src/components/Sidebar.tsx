@@ -288,12 +288,14 @@ export function Sidebar({
       className="relative bg-gh-bg-sidebar border-r border-gh-border flex flex-col shrink-0"
       style={{ width }}
     >
-      {searchOpen && (
-        <div className="px-2 pt-2 pb-1">
+      <div
+        className={`overflow-hidden transition-all duration-200 ease-in-out ${searchOpen ? "max-h-12 opacity-100" : "max-h-0 opacity-0"}`}
+      >
+        <div className="px-2 py-2">
           <input
             ref={searchInputRef}
             type="text"
-            value={searchQuery}
+            value={searchQuery ?? ""}
             onChange={(e) => onSearchQueryChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Escape") onSearchQueryChange(null);
@@ -302,7 +304,7 @@ export function Sidebar({
             className="w-full px-2 py-1.5 text-sm bg-gh-bg border border-gh-border rounded-md text-gh-text placeholder:text-gh-text-secondary outline-none focus:border-gh-accent"
           />
         </div>
-      )}
+      </div>
       <nav className="flex flex-col pb-1 flex-1 overflow-y-auto">
         {viewMode === "tree" ? (
           <TreeView

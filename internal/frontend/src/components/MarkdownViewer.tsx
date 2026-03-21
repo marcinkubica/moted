@@ -397,6 +397,7 @@ export function MarkdownViewer({
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [isRawView, setIsRawView] = useState(false);
+  const [fading, setFading] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
   const [prevFetchKey, setPrevFetchKey] = useState({ fileId, revision });
 
@@ -578,13 +579,19 @@ export function MarkdownViewer({
     <div className="flex items-start gap-2">
       <article
         ref={articleRef}
-        className={`markdown-body min-w-0 flex-1${isWide ? " markdown-body--wide" : ""}`}
+        className={`markdown-body min-w-0 flex-1 transition-opacity duration-150${isWide ? " markdown-body--wide" : ""}${fading ? " opacity-0" : " opacity-100"}`}
       >
         {renderedContent}
       </article>
       <div className="shrink-0 flex flex-col gap-2 -mr-4 -mt-8 sticky -top-5.5">
         {isMarkdown && <TocToggle isTocOpen={isTocOpen} onToggle={onTocToggle} />}
-        {isMarkdown && <RawToggle isRaw={isRawView} onToggle={() => setIsRawView((v) => !v)} />}
+        {isMarkdown && <RawToggle isRaw={isRawView} onToggle={() => {
+          setFading(true);
+          setTimeout(() => {
+            setIsRawView((v) => !v);
+            setFading(false);
+          }, 150);
+        }} />}
         <CopyButton content={content} />
         {!noDelete && <RemoveButton onRemove={onRemoveFile} />}
         {shareable && <ShareButton />}

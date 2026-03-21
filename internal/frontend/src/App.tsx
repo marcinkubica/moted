@@ -8,6 +8,7 @@ import { ViewModeToggle, type ViewMode } from "./components/ViewModeToggle";
 import { SearchToggle } from "./components/SearchToggle";
 import { TimestampToggle, type TimestampMode } from "./components/TimestampToggle";
 import { TreeCollapseToggle } from "./components/TreeCollapseToggle";
+import { SortToggle, cycleSortMode, saveSortMode, getInitialSortMode, type SortMode } from "./components/SortToggle";
 import type { TreeViewHandle } from "./components/TreeView";
 import { RestartButton } from "./components/RestartButton";
 import { DropOverlay } from "./components/DropOverlay";
@@ -69,6 +70,7 @@ export function App() {
       return false;
     }
   });
+  const [sortMode, setSortMode] = useState<SortMode>(getInitialSortMode);
   const [version, setVersion] = useState<VersionInfo | null>(null);
   const knownFileIds = useRef<Set<string>>(new Set());
   const treeViewRef = useRef<TreeViewHandle>(null);
@@ -322,6 +324,35 @@ export function App() {
     reorderFiles(groupName, fileIds);
   }, []);
 
+  const handleSortToggle = useCallback(() => {
+    setSortMode((prev) => {
+      const next = cycleSortMode(prev);
+      saveSortMode(next);
+      if (next === "time-asc" || next === "time-desc") {
+        setTimestampMode((t) => (t === "off" ? "relative" : t));
+      }
+      if (next !== "manual") {
+        // Apply sort to current group
+        const group = groups.find((g) => g.name === activeGroup);
+        if (group) {
+          const sorted = [...group.files].sort((a, b) => {
+            if (next === "alpha-asc") return a.name.localeCompare(b.name);
+            if (next === "alpha-desc") return b.name.localeCompare(a.name);
+            const ta = a.modTime ? new Date(a.modTime).getTime() : 0;
+            const tb = b.modTime ? new Date(b.modTime).getTime() : 0;
+            return next === "time-asc" ? ta - tb : tb - ta;
+          });
+          const ids = sorted.map((f) => f.id);
+          setGroups((prev) =>
+            prev.map((g) => (g.name !== activeGroup ? g : { ...g, files: sorted })),
+          );
+          reorderFiles(activeGroup, ids);
+        }
+      }
+      return next;
+    });
+  }, [groups, activeGroup]);
+
   const headingIds = useMemo(() => headings.map((h) => h.id), [headings]);
 
   const activeHeadingId = useActiveHeading(headingIds, scrollContainer);
@@ -385,6 +416,11 @@ export function App() {
               }
             }}
           />
+        </div>
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${currentViewMode === "flat" ? "max-w-10 opacity-100" : "max-w-0 opacity-0 -ml-3"}`}
+        >
+          <SortToggle mode={sortMode} onToggle={handleSortToggle} />
         </div>
         <SearchToggle isOpen={searchQuery != null} onToggle={handleSearchToggle} />
         <TimestampToggle
