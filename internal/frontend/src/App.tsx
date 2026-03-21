@@ -392,9 +392,24 @@ export function App() {
             )
           }
         />
-        <div className="ml-auto flex items-center gap-2">
-          <WidthToggle isWide={isWide} onToggle={() => setIsWide((v) => !v)} />
-          <ThemeToggle />
+        <div className="ml-auto flex items-center gap-3">
+          <a
+            href="https://github.com/marcinkubica/moted"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] leading-none pt-4 cursor-pointer"
+          >
+            {version && (
+              <>
+                <span style={{ color: '#5a8fc7' }} className="hover:underline">moted</span>
+                <span className="text-gh-text-secondary"> v{version.version}{version.revision && version.revision !== "HEAD" ? ` {${version.revision.slice(0, 7)}}` : ""}</span>
+              </>
+            )}
+          </a>
+          <div className="flex items-center gap-3">
+            <WidthToggle isWide={isWide} onToggle={() => setIsWide((v) => !v)} />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <div className="flex flex-1 overflow-hidden">

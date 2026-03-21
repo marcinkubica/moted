@@ -761,6 +761,18 @@ func emitServeOutput(addr string, deeplinks []deeplinkEntry, printURL bool) {
 		return
 	}
 
+	// Skip text output in server mode (for cleaner container logs)
+	if serverMode || configPath != "" {
+		return
+	}
+
+	// Print version info first
+	ver := version.Version
+	if version.Revision != "" && version.Revision != "HEAD" {
+		ver += fmt.Sprintf(" {%s}", version.Revision[:7])
+	}
+	fmt.Fprintf(os.Stdout, "moted v%s\n", ver)
+
 	// Count files per group
 	groupCounts := make(map[string]int)
 	for _, d := range deeplinks {
@@ -1146,7 +1158,7 @@ func startServer(ctx context.Context, addr string, filesByGroup map[string][]str
 	}
 
 	go func() {
-		slog.Info("serving", "url", fmt.Sprintf("http://%s", addr))
+		slog.Info("serving", "url", fmt.Sprintf("http://%s", addr), "version", version.Version, "revision", version.Revision)
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			slog.Error("server error", "error", err)
 		}

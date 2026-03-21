@@ -21,6 +21,10 @@ RUN pnpm run build
 # Build stage for Go binary
 FROM golang:1.26-alpine AS builder
 
+# Build arguments for version info
+ARG VERSION=0.0.0
+ARG REVISION=HEAD
+
 WORKDIR /app
 
 # Install build dependencies
@@ -36,8 +40,8 @@ COPY . .
 # Copy built frontend from previous stage
 COPY --from=frontend-builder /app/internal/static/dist ./internal/static/dist
 
-# Build the binary
-RUN go build -ldflags="-s -w" -trimpath -o moted .
+# Build the binary with version info
+RUN go build -ldflags="-s -w -X moted/version.Version=${VERSION} -X moted/version.Revision=${REVISION}" -trimpath -o moted .
 
 # Final stage
 FROM gcr.io/distroless/static-debian12:nonroot

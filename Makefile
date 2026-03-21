@@ -1,7 +1,8 @@
 PKG = moted
+VERSION = $(shell grep 'Version =' version/version.go | cut -d '"' -f2)
 COMMIT = $(shell git rev-parse --short HEAD)
 
-BUILD_LDFLAGS = "-s -w -X $(PKG)/version.Revision=$(COMMIT)"
+BUILD_LDFLAGS = "-s -w -X $(PKG)/version.Version=$(VERSION) -X $(PKG)/version.Revision=$(COMMIT)"
 
 default: test
 
@@ -19,6 +20,11 @@ build: generate
 
 dev: build
 	./moted --config docs/config.example.yaml
+
+rebuild:
+	./moted --shutdown 2>/dev/null || true
+	$(MAKE) build
+	./moted
 
 screenshot: build
 	cd internal/frontend && pnpm run screenshots
@@ -47,4 +53,4 @@ credits: depsdev generate
 prerelease_for_tagpr: credits
 	git add CHANGELOG.md CREDITS go.mod go.sum
 
-.PHONY: default ci generate test build dev screenshot lint fmt fmt-check depsdev credits prerelease_for_tagpr
+.PHONY: default ci generate test build dev rebuild screenshot lint fmt fmt-check depsdev credits prerelease_for_tagpr
