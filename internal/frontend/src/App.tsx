@@ -373,7 +373,7 @@ export function App() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full font-sans text-gh-text bg-gh-bg">
+    <div className="flex flex-col h-full font-sans text-gh-text bg-gh-bg overflow-hidden">
       <header className="h-12 shrink-0 flex items-center gap-3 px-4 bg-gh-header-bg text-gh-header-text border-b border-gh-header-border">
         <button
           type="button"
@@ -505,7 +505,7 @@ export function App() {
           </div>
         </main>
         <div
-          className={`overflow-hidden transition-[max-width,opacity] duration-200 ease-in-out ${tocOpen ? "max-w-[480px] opacity-100" : "max-w-0 opacity-0"}`}
+          className={`h-full overflow-hidden transition-[max-width,opacity] duration-200 ease-in-out ${tocOpen ? "max-w-[480px] opacity-100" : "max-w-0 opacity-0"}`}
         >
           <TocPanel
             headings={headings}

@@ -653,7 +653,7 @@ export function MarkdownViewer({
     <div className="flex items-start gap-2">
       <article
         ref={articleRef}
-        className={`markdown-body min-w-0 flex-1 transition-opacity duration-150${isWide ? " markdown-body--wide" : ""}${fading ? " opacity-0" : " opacity-100"}`}
+        className={`markdown-body min-w-0 flex-1 transition-opacity duration-150 overflow-x-auto${isWide ? " markdown-body--wide" : ""}${fading ? " opacity-0" : " opacity-100"}`}
         style={{ fontSize: `${fontSize}px`, transition: "font-size 0.2s ease-in-out" }}
       >
         {renderedContent}

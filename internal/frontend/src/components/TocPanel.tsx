@@ -80,7 +80,7 @@ export function TocPanel({ headings, activeHeadingId, onHeadingClick }: TocPanel
         className="absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-gh-border active:bg-gh-border transition-colors"
         onMouseDown={onMouseDown}
       />
-      <nav className="flex flex-col pb-1">
+      <nav className="flex flex-col flex-1 pb-1 overflow-y-auto">
         {headings.length === 0 ? (
           <div className="px-3 py-2 text-gh-text-secondary text-sm">No headings</div>
         ) : (
