@@ -769,7 +769,7 @@ func emitServeOutput(addr string, deeplinks []deeplinkEntry, printURL bool) {
 	// Print version info first
 	ver := version.Version
 	if version.Revision != "" && version.Revision != "HEAD" {
-		ver += fmt.Sprintf(" {%s}", version.Revision[:7])
+		ver += fmt.Sprintf(" (%s)", version.Revision[:7])
 	}
 	fmt.Fprintf(os.Stdout, "moted v%s\n", ver)
 

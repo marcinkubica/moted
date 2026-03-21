@@ -401,8 +401,16 @@ export function App() {
           >
             {version && (
               <>
-                <span style={{ color: '#5a8fc7' }} className="hover:underline">moted</span>
-                <span className="text-gh-text-secondary"> v{version.version}{version.revision && version.revision !== "HEAD" ? ` {${version.revision.slice(0, 7)}}` : ""}</span>
+                <span style={{ color: "#5a8fc7" }} className="hover:underline">
+                  moted
+                </span>
+                <span className="text-gh-text-secondary">
+                  {" "}
+                  v{version.version}
+                  {version.revision && version.revision !== "HEAD"
+                    ? ` (${version.revision.slice(0, 7)})`
+                    : ""}
+                </span>
               </>
             )}
           </a>
