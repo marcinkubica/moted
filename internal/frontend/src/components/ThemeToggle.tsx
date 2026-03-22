@@ -5,7 +5,7 @@ type Theme =
   | "dark"
   | "dimmed"
   | "high-contrast"
-  | "catppuccin"
+  | "rose-pine"
   | "tokyo-night"
   | "tokyo-night-light"
   | "solarized-light";
@@ -15,7 +15,7 @@ const THEMES: { id: Theme; name: string; swatches: [string, string, string] }[] 
   { id: "dark", name: "Dark", swatches: ["#0d1117", "#161b22", "#e6edf3"] },
   { id: "dimmed", name: "Dimmed", swatches: ["#22272e", "#2d333b", "#adbac7"] },
   { id: "high-contrast", name: "High Contrast", swatches: ["#010409", "#0d1117", "#f0f6fc"] },
-  { id: "catppuccin", name: "Catppuccin", swatches: ["#1e1e2e", "#181825", "#cdd6f4"] },
+  { id: "rose-pine", name: "Rosé Pine", swatches: ["#191724", "#1f1d2e", "#e0def4"] },
   { id: "tokyo-night", name: "Tokyo Night", swatches: ["#1a1b26", "#16161e", "#c0caf5"] },
   { id: "tokyo-night-light", name: "Tokyo Night Light", swatches: ["#d5d6db", "#cbccd1", "#343b58"] },
   { id: "solarized-light", name: "Solarized Light", swatches: ["#fdf6e3", "#eee8d5", "#657b83"] },
