@@ -1,18 +1,31 @@
 import { useEffect, useRef, useState } from "react";
 
-type Theme = "light" | "dark" | "dimmed" | "high-contrast";
+type Theme =
+  | "light"
+  | "dark"
+  | "dimmed"
+  | "high-contrast"
+  | "catppuccin"
+  | "tokyo-night"
+  | "tokyo-night-light"
+  | "solarized-light";
 
 const THEMES: { id: Theme; name: string; swatches: [string, string, string] }[] = [
   { id: "light", name: "Light", swatches: ["#ffffff", "#f0f2f5", "#1f2328"] },
   { id: "dark", name: "Dark", swatches: ["#0d1117", "#161b22", "#e6edf3"] },
   { id: "dimmed", name: "Dimmed", swatches: ["#22272e", "#2d333b", "#adbac7"] },
   { id: "high-contrast", name: "High Contrast", swatches: ["#010409", "#0d1117", "#f0f6fc"] },
+  { id: "catppuccin", name: "Catppuccin", swatches: ["#1e1e2e", "#181825", "#cdd6f4"] },
+  { id: "tokyo-night", name: "Tokyo Night", swatches: ["#1a1b26", "#16161e", "#c0caf5"] },
+  { id: "tokyo-night-light", name: "Tokyo Night Light", swatches: ["#d5d6db", "#cbccd1", "#343b58"] },
+  { id: "solarized-light", name: "Solarized Light", swatches: ["#fdf6e3", "#eee8d5", "#657b83"] },
 ];
+
+const THEME_IDS = THEMES.map((t) => t.id);
 
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem("mo-theme");
-  if (stored === "light" || stored === "dark" || stored === "dimmed" || stored === "high-contrast")
-    return stored;
+  if (THEME_IDS.includes(stored as Theme)) return stored as Theme;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 

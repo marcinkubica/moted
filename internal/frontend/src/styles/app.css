@@ -28,6 +28,62 @@
   --color-gh-header-border: #30363d;
 }
 
+[data-theme="catppuccin"] {
+  --color-gh-bg: #1e1e2e;
+  --color-gh-bg-secondary: #181825;
+  --color-gh-bg-sidebar: #181825;
+  --color-gh-bg-hover: #313244;
+  --color-gh-bg-active: #45475a;
+  --color-gh-text: #cdd6f4;
+  --color-gh-text-secondary: #a6adc8;
+  --color-gh-border: #45475a;
+  --color-gh-header-bg: #181825;
+  --color-gh-header-text: #cdd6f4;
+  --color-gh-header-border: #45475a;
+}
+
+[data-theme="tokyo-night"] {
+  --color-gh-bg: #1a1b26;
+  --color-gh-bg-secondary: #16161e;
+  --color-gh-bg-sidebar: #16161e;
+  --color-gh-bg-hover: #292e42;
+  --color-gh-bg-active: #3b4261;
+  --color-gh-text: #c0caf5;
+  --color-gh-text-secondary: #a9b1d6;
+  --color-gh-border: #3b4261;
+  --color-gh-header-bg: #16161e;
+  --color-gh-header-text: #c0caf5;
+  --color-gh-header-border: #3b4261;
+}
+
+[data-theme="tokyo-night-light"] {
+  --color-gh-bg: #d5d6db;
+  --color-gh-bg-secondary: #cbccd1;
+  --color-gh-bg-sidebar: #cbccd1;
+  --color-gh-bg-hover: #b9bac0;
+  --color-gh-bg-active: #a8aab0;
+  --color-gh-text: #343b58;
+  --color-gh-text-secondary: #565a6e;
+  --color-gh-border: #9699a3;
+  --color-gh-header-bg: #cbccd1;
+  --color-gh-header-text: #343b58;
+  --color-gh-header-border: #9699a3;
+}
+
+[data-theme="solarized-light"] {
+  --color-gh-bg: #fdf6e3;
+  --color-gh-bg-secondary: #eee8d5;
+  --color-gh-bg-sidebar: #eee8d5;
+  --color-gh-bg-hover: #e0d9c5;
+  --color-gh-bg-active: #d3ccb7;
+  --color-gh-text: #657b83;
+  --color-gh-text-secondary: #839496;
+  --color-gh-border: #ccc4b0;
+  --color-gh-header-bg: #eee8d5;
+  --color-gh-header-text: #657b83;
+  --color-gh-header-border: #ccc4b0;
+}
+
 [data-theme="dimmed"] {
   --color-gh-bg: #22272e;
   --color-gh-bg-secondary: #2d333b;
@@ -416,4 +472,220 @@ button:active {
   --color-prettylights-syntax-sublimelinter-gutter-mark: #7a828e;
   --color-prettylights-syntax-invalid-illegal-bg: var(--bgColor-danger-muted);
   --color-prettylights-syntax-invalid-illegal-text: var(--fgColor-danger);
+}
+
+[data-theme="catppuccin"] .markdown-body {
+  color-scheme: dark;
+  --fgColor-accent: #89b4fa;
+  --fgColor-danger: #f38ba8;
+  --fgColor-default: #cdd6f4;
+  --fgColor-muted: #a6adc8;
+  --fgColor-attention: #f9e2af;
+  --fgColor-done: #cba6f7;
+  --fgColor-success: #a6e3a1;
+  --bgColor-default: #1e1e2e;
+  --bgColor-muted: #181825;
+  --bgColor-neutral-muted: #45475a66;
+  --bgColor-attention-muted: #f9e2af26;
+  --borderColor-default: #45475a;
+  --borderColor-muted: #45475ab3;
+  --borderColor-accent-emphasis: #89b4fa;
+  --borderColor-attention-emphasis: #f9e2af;
+  --borderColor-danger-emphasis: #f38ba8;
+  --borderColor-done-emphasis: #cba6f7;
+  --borderColor-success-emphasis: #a6e3a1;
+  --borderColor-neutral-muted: var(--borderColor-muted);
+  --focus-outlineColor: var(--borderColor-accent-emphasis);
+  --color-prettylights-syntax-comment: #a6adc8;
+  --color-prettylights-syntax-constant: #89b4fa;
+  --color-prettylights-syntax-constant-other-reference-link: #89dceb;
+  --color-prettylights-syntax-entity: #cba6f7;
+  --color-prettylights-syntax-entity-tag: #a6e3a1;
+  --color-prettylights-syntax-keyword: #f38ba8;
+  --color-prettylights-syntax-string: #a6e3a1;
+  --color-prettylights-syntax-string-regexp: #94e2d5;
+  --color-prettylights-syntax-variable: #fab387;
+  --color-prettylights-syntax-brackethighlighter-angle: #a6adc8;
+  --color-prettylights-syntax-brackethighlighter-unmatched: #f38ba8;
+  --color-prettylights-syntax-carriage-return-bg: #f38ba8;
+  --color-prettylights-syntax-carriage-return-text: #1e1e2e;
+  --color-prettylights-syntax-markup-bold: #cdd6f4;
+  --color-prettylights-syntax-markup-italic: #cdd6f4;
+  --color-prettylights-syntax-markup-changed-bg: #fab38726;
+  --color-prettylights-syntax-markup-changed-text: #fab387;
+  --color-prettylights-syntax-markup-deleted-bg: #f38ba826;
+  --color-prettylights-syntax-markup-deleted-text: #f38ba8;
+  --color-prettylights-syntax-markup-heading: #89b4fa;
+  --color-prettylights-syntax-markup-ignored-bg: #89b4fa;
+  --color-prettylights-syntax-markup-ignored-text: #1e1e2e;
+  --color-prettylights-syntax-markup-inserted-bg: #a6e3a126;
+  --color-prettylights-syntax-markup-inserted-text: #a6e3a1;
+  --color-prettylights-syntax-markup-list: #fab387;
+  --color-prettylights-syntax-meta-diff-range: #cba6f7;
+  --color-prettylights-syntax-storage-modifier-import: #cdd6f4;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #6c7086;
+  --color-prettylights-syntax-invalid-illegal-bg: #f38ba8;
+  --color-prettylights-syntax-invalid-illegal-text: #1e1e2e;
+}
+
+[data-theme="tokyo-night"] .markdown-body {
+  color-scheme: dark;
+  --fgColor-accent: #7aa2f7;
+  --fgColor-danger: #f7768e;
+  --fgColor-default: #c0caf5;
+  --fgColor-muted: #a9b1d6;
+  --fgColor-attention: #e0af68;
+  --fgColor-done: #bb9af7;
+  --fgColor-success: #9ece6a;
+  --bgColor-default: #1a1b26;
+  --bgColor-muted: #16161e;
+  --bgColor-neutral-muted: #3b426166;
+  --bgColor-attention-muted: #e0af6826;
+  --borderColor-default: #3b4261;
+  --borderColor-muted: #3b4261b3;
+  --borderColor-accent-emphasis: #7aa2f7;
+  --borderColor-attention-emphasis: #e0af68;
+  --borderColor-danger-emphasis: #f7768e;
+  --borderColor-done-emphasis: #bb9af7;
+  --borderColor-success-emphasis: #9ece6a;
+  --borderColor-neutral-muted: var(--borderColor-muted);
+  --focus-outlineColor: var(--borderColor-accent-emphasis);
+  --color-prettylights-syntax-comment: #565f89;
+  --color-prettylights-syntax-constant: #7aa2f7;
+  --color-prettylights-syntax-constant-other-reference-link: #2ac3de;
+  --color-prettylights-syntax-entity: #bb9af7;
+  --color-prettylights-syntax-entity-tag: #9ece6a;
+  --color-prettylights-syntax-keyword: #f7768e;
+  --color-prettylights-syntax-string: #9ece6a;
+  --color-prettylights-syntax-string-regexp: #73daca;
+  --color-prettylights-syntax-variable: #ff9e64;
+  --color-prettylights-syntax-brackethighlighter-angle: #a9b1d6;
+  --color-prettylights-syntax-brackethighlighter-unmatched: #f7768e;
+  --color-prettylights-syntax-carriage-return-bg: #f7768e;
+  --color-prettylights-syntax-carriage-return-text: #1a1b26;
+  --color-prettylights-syntax-markup-bold: #c0caf5;
+  --color-prettylights-syntax-markup-italic: #c0caf5;
+  --color-prettylights-syntax-markup-changed-bg: #ff9e6426;
+  --color-prettylights-syntax-markup-changed-text: #ff9e64;
+  --color-prettylights-syntax-markup-deleted-bg: #f7768e26;
+  --color-prettylights-syntax-markup-deleted-text: #f7768e;
+  --color-prettylights-syntax-markup-heading: #7aa2f7;
+  --color-prettylights-syntax-markup-ignored-bg: #7aa2f7;
+  --color-prettylights-syntax-markup-ignored-text: #1a1b26;
+  --color-prettylights-syntax-markup-inserted-bg: #9ece6a26;
+  --color-prettylights-syntax-markup-inserted-text: #9ece6a;
+  --color-prettylights-syntax-markup-list: #ff9e64;
+  --color-prettylights-syntax-meta-diff-range: #bb9af7;
+  --color-prettylights-syntax-storage-modifier-import: #c0caf5;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #3b4261;
+  --color-prettylights-syntax-invalid-illegal-bg: #f7768e;
+  --color-prettylights-syntax-invalid-illegal-text: #1a1b26;
+}
+
+[data-theme="tokyo-night-light"] .markdown-body {
+  color-scheme: light;
+  --fgColor-accent: #2e7de9;
+  --fgColor-danger: #f52a65;
+  --fgColor-default: #343b58;
+  --fgColor-muted: #565a6e;
+  --fgColor-attention: #8c6c3e;
+  --fgColor-done: #7847bd;
+  --fgColor-success: #587539;
+  --bgColor-default: #d5d6db;
+  --bgColor-muted: #cbccd1;
+  --bgColor-neutral-muted: #9699a333;
+  --bgColor-attention-muted: #8c6c3e26;
+  --borderColor-default: #9699a3;
+  --borderColor-muted: #9699a3b3;
+  --borderColor-accent-emphasis: #2e7de9;
+  --borderColor-attention-emphasis: #8c6c3e;
+  --borderColor-danger-emphasis: #f52a65;
+  --borderColor-done-emphasis: #7847bd;
+  --borderColor-success-emphasis: #587539;
+  --borderColor-neutral-muted: var(--borderColor-muted);
+  --focus-outlineColor: var(--borderColor-accent-emphasis);
+  --color-prettylights-syntax-comment: #848cb8;
+  --color-prettylights-syntax-constant: #2e7de9;
+  --color-prettylights-syntax-constant-other-reference-link: #007197;
+  --color-prettylights-syntax-entity: #7847bd;
+  --color-prettylights-syntax-entity-tag: #587539;
+  --color-prettylights-syntax-keyword: #f52a65;
+  --color-prettylights-syntax-string: #587539;
+  --color-prettylights-syntax-string-regexp: #118c74;
+  --color-prettylights-syntax-variable: #8f5e15;
+  --color-prettylights-syntax-brackethighlighter-angle: #565a6e;
+  --color-prettylights-syntax-brackethighlighter-unmatched: #f52a65;
+  --color-prettylights-syntax-carriage-return-bg: #f52a65;
+  --color-prettylights-syntax-carriage-return-text: #d5d6db;
+  --color-prettylights-syntax-markup-bold: #343b58;
+  --color-prettylights-syntax-markup-italic: #343b58;
+  --color-prettylights-syntax-markup-changed-bg: #8f5e1526;
+  --color-prettylights-syntax-markup-changed-text: #8f5e15;
+  --color-prettylights-syntax-markup-deleted-bg: #f52a6526;
+  --color-prettylights-syntax-markup-deleted-text: #f52a65;
+  --color-prettylights-syntax-markup-heading: #2e7de9;
+  --color-prettylights-syntax-markup-ignored-bg: #2e7de9;
+  --color-prettylights-syntax-markup-ignored-text: #d5d6db;
+  --color-prettylights-syntax-markup-inserted-bg: #58753926;
+  --color-prettylights-syntax-markup-inserted-text: #587539;
+  --color-prettylights-syntax-markup-list: #8f5e15;
+  --color-prettylights-syntax-meta-diff-range: #7847bd;
+  --color-prettylights-syntax-storage-modifier-import: #343b58;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #9699a3;
+  --color-prettylights-syntax-invalid-illegal-bg: #f52a65;
+  --color-prettylights-syntax-invalid-illegal-text: #d5d6db;
+}
+
+[data-theme="solarized-light"] .markdown-body {
+  color-scheme: light;
+  --fgColor-accent: #268bd2;
+  --fgColor-danger: #dc322f;
+  --fgColor-default: #657b83;
+  --fgColor-muted: #839496;
+  --fgColor-attention: #b58900;
+  --fgColor-done: #6c71c4;
+  --fgColor-success: #859900;
+  --bgColor-default: #fdf6e3;
+  --bgColor-muted: #eee8d5;
+  --bgColor-neutral-muted: #93a1a133;
+  --bgColor-attention-muted: #b5890026;
+  --borderColor-default: #ccc4b0;
+  --borderColor-muted: #ccc4b0b3;
+  --borderColor-accent-emphasis: #268bd2;
+  --borderColor-attention-emphasis: #b58900;
+  --borderColor-danger-emphasis: #dc322f;
+  --borderColor-done-emphasis: #6c71c4;
+  --borderColor-success-emphasis: #859900;
+  --borderColor-neutral-muted: var(--borderColor-muted);
+  --focus-outlineColor: var(--borderColor-accent-emphasis);
+  --color-prettylights-syntax-comment: #93a1a1;
+  --color-prettylights-syntax-constant: #268bd2;
+  --color-prettylights-syntax-constant-other-reference-link: #2aa198;
+  --color-prettylights-syntax-entity: #6c71c4;
+  --color-prettylights-syntax-entity-tag: #859900;
+  --color-prettylights-syntax-keyword: #dc322f;
+  --color-prettylights-syntax-string: #859900;
+  --color-prettylights-syntax-string-regexp: #2aa198;
+  --color-prettylights-syntax-variable: #cb4b16;
+  --color-prettylights-syntax-brackethighlighter-angle: #839496;
+  --color-prettylights-syntax-brackethighlighter-unmatched: #dc322f;
+  --color-prettylights-syntax-carriage-return-bg: #dc322f;
+  --color-prettylights-syntax-carriage-return-text: #fdf6e3;
+  --color-prettylights-syntax-markup-bold: #657b83;
+  --color-prettylights-syntax-markup-italic: #657b83;
+  --color-prettylights-syntax-markup-changed-bg: #cb4b1626;
+  --color-prettylights-syntax-markup-changed-text: #cb4b16;
+  --color-prettylights-syntax-markup-deleted-bg: #dc322f26;
+  --color-prettylights-syntax-markup-deleted-text: #dc322f;
+  --color-prettylights-syntax-markup-heading: #268bd2;
+  --color-prettylights-syntax-markup-ignored-bg: #268bd2;
+  --color-prettylights-syntax-markup-ignored-text: #fdf6e3;
+  --color-prettylights-syntax-markup-inserted-bg: #85990026;
+  --color-prettylights-syntax-markup-inserted-text: #859900;
+  --color-prettylights-syntax-markup-list: #cb4b16;
+  --color-prettylights-syntax-meta-diff-range: #6c71c4;
+  --color-prettylights-syntax-storage-modifier-import: #657b83;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #93a1a1;
+  --color-prettylights-syntax-invalid-illegal-bg: #dc322f;
+  --color-prettylights-syntax-invalid-illegal-text: #fdf6e3;
 }
