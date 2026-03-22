@@ -14,7 +14,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { FileEntry, Group } from "../hooks/useApi";
+import type { FileEntry, Group, VersionInfo } from "../hooks/useApi";
 import { removeFile, moveFile } from "../hooks/useApi";
 import { buildFileUrl } from "../utils/groups";
 import type { ViewMode } from "./ViewModeToggle";
@@ -137,6 +137,7 @@ interface SidebarProps {
   noDelete?: boolean;
   noFileMove?: boolean;
   timestampMode?: TimestampMode;
+  version?: VersionInfo | null;
 }
 
 export function Sidebar({
@@ -152,6 +153,7 @@ export function Sidebar({
   noDelete,
   noFileMove,
   timestampMode,
+  version,
 }: SidebarProps) {
   const allFiles = useMemo(() => {
     const currentGroup = groups.find((g) => g.name === activeGroup);
@@ -369,6 +371,25 @@ export function Sidebar({
           </DndContext>
         )}
       </nav>
+      {version && (
+        <a
+          href="https://github.com/marcinkubica/moted"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-3 py-2 text-[10px] leading-none cursor-pointer"
+        >
+          <span style={{ color: "#5a8fc7" }} className="hover:underline">
+            moted
+          </span>
+          <span className="text-gh-text-secondary">
+            {" "}
+            v{version.version}
+            {version.revision && version.revision !== "HEAD"
+              ? ` (${version.revision.slice(0, 7)})`
+              : ""}
+          </span>
+        </a>
+      )}
       {/* Resize handle */}
       <div
         className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-gh-border active:bg-gh-border transition-colors"
