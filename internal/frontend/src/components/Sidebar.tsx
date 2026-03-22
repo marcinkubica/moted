@@ -307,7 +307,7 @@ export function Sidebar({
           />
         </div>
       </div>
-      <nav className="flex flex-col pb-1 flex-1 overflow-y-auto">
+      <nav className="flex flex-col pb-1 flex-1 overflow-y-auto min-h-0">
         {viewMode === "tree" ? (
           <TreeView
             ref={treeViewRef}

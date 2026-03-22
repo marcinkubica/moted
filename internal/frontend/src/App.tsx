@@ -447,7 +447,7 @@ export function App() {
           </div>
         </div>
       </header>
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-h-0">
         {sidebarOpen && (
           <Sidebar
             groups={groups}
@@ -465,8 +465,8 @@ export function App() {
             version={version}
           />
         )}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <div ref={setScrollContainer} className="flex-1 overflow-y-auto p-8 bg-gh-bg">
+        <main className="flex-1 flex flex-col overflow-hidden min-h-0 min-w-0">
+          <div ref={setScrollContainer} className="flex-1 overflow-y-auto p-8 bg-gh-bg min-h-0">
             {activeFileId != null ? (
               <MarkdownViewer
                 fileId={activeFileId}
