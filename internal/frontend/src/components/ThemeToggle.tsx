@@ -1,61 +1,101 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-type Theme = "light" | "dark";
+type Theme = "light" | "dark" | "dimmed" | "high-contrast";
+
+const THEMES: { id: Theme; name: string; swatches: [string, string, string] }[] = [
+  { id: "light", name: "Light", swatches: ["#ffffff", "#f0f2f5", "#1f2328"] },
+  { id: "dark", name: "Dark", swatches: ["#0d1117", "#161b22", "#e6edf3"] },
+  { id: "dimmed", name: "Dimmed", swatches: ["#22272e", "#2d333b", "#adbac7"] },
+  { id: "high-contrast", name: "High Contrast", swatches: ["#010409", "#0d1117", "#f0f6fc"] },
+];
 
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem("mo-theme");
-  if (stored === "light" || stored === "dark") return stored;
+  if (stored === "light" || stored === "dark" || stored === "dimmed" || stored === "high-contrast")
+    return stored;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [preview, setPreview] = useState<Theme | null>(null);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-theme", preview ?? theme);
+  }, [preview, theme]);
+
+  useEffect(() => {
     localStorage.setItem("mo-theme", theme);
   }, [theme]);
 
-  const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+  useEffect(() => {
+    if (!open) {
+      setPreview(null);
+      return;
+    }
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
 
   return (
-    <button
-      type="button"
-      className="flex items-center justify-center bg-transparent border border-gh-border rounded-md p-1.5 text-gh-header-text cursor-pointer transition-colors duration-150 hover:bg-gh-bg-hover"
-      onClick={toggle}
-      aria-label="Dark mode"
-      aria-pressed={theme === "dark"}
-      title="Toggle theme"
-    >
-      {theme === "dark" ? (
-        <svg
-          className="size-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"
-          />
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        className="flex items-center justify-center bg-transparent border border-gh-border rounded-md p-1.5 text-gh-header-text cursor-pointer transition-colors duration-150 hover:bg-gh-bg-hover"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Theme picker"
+        title="Change theme"
+      >
+        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 3a9 9 0 0 1 0 18V3z" fill="currentColor" stroke="none" />
         </svg>
-      ) : (
-        <svg
-          className="size-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"
-          />
-        </svg>
-      )}
-    </button>
+      </button>
+
+      <div
+        className={`absolute right-0 top-full mt-1.5 w-44 bg-gh-bg-sidebar border border-gh-border rounded-lg shadow-xl z-10 py-1.5 transition-all duration-200 ease-in-out ${
+          open ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
+        }`}
+        onMouseLeave={() => setPreview(null)}
+      >
+        <p className="px-3 pt-0.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gh-text-secondary">
+          Theme
+        </p>
+        {THEMES.map((t) => (
+          <button
+            key={t.id}
+            className={`flex items-center gap-2.5 w-full px-3 py-1.5 border-none cursor-pointer text-left transition-colors duration-150 ${
+              t.id === (preview ?? theme)
+                ? "bg-gh-bg-active text-gh-text"
+                : "bg-transparent text-gh-text-secondary hover:bg-gh-bg-hover hover:text-gh-text"
+            }`}
+            onMouseEnter={() => setPreview(t.id)}
+            onClick={() => {
+              setTheme(t.id);
+              setPreview(null);
+              setOpen(false);
+            }}
+          >
+            <span className="text-xs font-medium flex-1">{t.name}</span>
+            {t.id === theme && (
+              <svg
+                className="size-3.5 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
