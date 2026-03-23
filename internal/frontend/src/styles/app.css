@@ -292,6 +292,15 @@ body,
   color: var(--fgColor-danger);
 }
 
+/* Word-wrap for tables that overflow their container */
+.markdown-body table.table-wrap th {
+  white-space: nowrap;
+}
+.markdown-body table.table-wrap td {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
 /* Scroll offset for heading anchors */
 .markdown-body [id] {
   scroll-margin-top: 1.5rem;

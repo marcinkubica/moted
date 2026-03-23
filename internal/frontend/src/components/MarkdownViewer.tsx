@@ -644,6 +644,34 @@ export function MarkdownViewer({
     }
   }, [isRawView, renderedContent, content, onHeadingsChange]);
 
+  useEffect(() => {
+    const article = articleRef.current;
+    if (!article || isRawView) return;
+
+    const checkTables = () => {
+      const tables = article.querySelectorAll<HTMLTableElement>("table");
+      // First pass: reset all
+      tables.forEach((table) => {
+        table.classList.remove("table-wrap");
+        table.style.maxWidth = "";
+      });
+      // Second pass: lift max-width to measure true natural width, then decide
+      tables.forEach((table) => {
+        table.style.maxWidth = "none";
+        const overflows = table.scrollWidth > article.clientWidth;
+        table.style.maxWidth = "";
+        if (overflows) {
+          table.classList.add("table-wrap");
+        }
+      });
+    };
+
+    checkTables();
+    const observer = new ResizeObserver(checkTables);
+    observer.observe(article);
+    return () => observer.disconnect();
+  }, [renderedContent, isRawView]);
+
   const onContentRenderedRef = useRef(onContentRendered);
   useLayoutEffect(() => {
     onContentRenderedRef.current = onContentRendered;
