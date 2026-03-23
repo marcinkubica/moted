@@ -17,7 +17,11 @@ const THEMES: { id: Theme; name: string; swatches: [string, string, string] }[] 
   { id: "high-contrast", name: "High Contrast", swatches: ["#010409", "#0d1117", "#f0f6fc"] },
   { id: "rose-pine", name: "Rosé Pine", swatches: ["#191724", "#1f1d2e", "#e0def4"] },
   { id: "tokyo-night", name: "Tokyo Night", swatches: ["#1a1b26", "#16161e", "#c0caf5"] },
-  { id: "tokyo-night-light", name: "Tokyo Night Light", swatches: ["#d5d6db", "#cbccd1", "#343b58"] },
+  {
+    id: "tokyo-night-light",
+    name: "Tokyo Night Light",
+    swatches: ["#d5d6db", "#cbccd1", "#343b58"],
+  },
   { id: "solarized-light", name: "Solarized Light", swatches: ["#fdf6e3", "#eee8d5", "#657b83"] },
 ];
 
@@ -64,7 +68,13 @@ export function ThemeToggle() {
         aria-label="Theme picker"
         title="Change theme"
       >
-        <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+        <svg
+          className="size-5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.5}
+        >
           <circle cx="12" cy="12" r="9" />
           <path d="M12 3a9 9 0 0 1 0 18V3z" fill="currentColor" stroke="none" />
         </svg>
