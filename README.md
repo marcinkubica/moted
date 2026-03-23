@@ -29,16 +29,20 @@
 - True filename URLs (optional, falls back to hash IDs for duplicate filenames)
 - File timestamps (creation time or relative time)
 - Readiness endpoint for health checks
-- [docker](https://github.com/marcinkubica/moted/pkgs/container/moted) image
+- [docker build](https://github.com/marcinkubica/moted/pkgs/container/moted) image
+
 
 **UI changes:**
-- Toolbar is now sticky
+- Sticky toolbar for easier user actions while scrolling
+- Multi-theme picker 
+- Smart table word-wrap: wide tables automatically reflow cell content to fit the viewport
 - Adjustable font size
 - Improved ToC panel with scroll tracking and highlighting
 - Share raw file content via direct links
 - Control auto-selection of newly added files
 - Navigate to files by filename in URL
 - Smooth animations and transitions
+- Bugfixed page overflow on large documents and directories
 
 ## Planned Features
 - Google/Github SSO
