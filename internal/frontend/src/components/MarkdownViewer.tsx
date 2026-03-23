@@ -650,19 +650,18 @@ export function MarkdownViewer({
 
     const checkTables = () => {
       const tables = article.querySelectorAll<HTMLTableElement>("table");
-      // First pass: reset all
       tables.forEach((table) => {
-        table.classList.remove("table-wrap");
-        table.style.maxWidth = "";
-      });
-      // Second pass: lift max-width to measure true natural width, then decide
-      tables.forEach((table) => {
-        table.style.maxWidth = "none";
-        const overflows = table.scrollWidth > article.clientWidth;
-        table.style.maxWidth = "";
-        if (overflows) {
-          table.classList.add("table-wrap");
-        }
+        table.classList.add("table-wrap");
+        table.style.tableLayout = "fixed";
+        table.style.width = "100%";
+        table.style.maxWidth = "100%";
+        const cells = table.querySelectorAll<HTMLTableCellElement>("td");
+        cells.forEach((cell) => {
+          cell.style.whiteSpace = "normal";
+          cell.style.overflowWrap = "break-word";
+          cell.style.wordBreak = "break-word";
+          cell.style.minWidth = "0";
+        });
       });
     };
 

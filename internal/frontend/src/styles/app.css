@@ -292,13 +292,40 @@ body,
   color: var(--fgColor-danger);
 }
 
-/* Word-wrap for tables that overflow their container */
-.markdown-body table.table-wrap th {
-  white-space: nowrap;
+/* Word-wrap for all markdown tables - override github-markdown-css */
+.markdown-body table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
 }
-.markdown-body table.table-wrap td {
-  white-space: normal;
-  overflow-wrap: break-word;
+.markdown-body table th,
+.markdown-body table td {
+  min-width: 0 !important;
+}
+.markdown-body table th:first-child,
+.markdown-body table td:first-child {
+  width: 60px !important;
+}
+.markdown-body table th:nth-child(2),
+.markdown-body table td:nth-child(2) {
+  width: 80px !important;
+}
+.markdown-body table th:nth-child(3),
+.markdown-body table td:nth-child(3) {
+  width: auto !important;
+}
+.markdown-body table th {
+  white-space: nowrap !important;
+}
+.markdown-body table td {
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+}
+.markdown-body table td * {
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important;
 }
 
 /* Scroll offset for heading anchors */
