@@ -8,6 +8,13 @@ import { ViewModeToggle, type ViewMode } from "./components/ViewModeToggle";
 import { SearchToggle } from "./components/SearchToggle";
 import { TimestampToggle, type TimestampMode } from "./components/TimestampToggle";
 import { TreeCollapseToggle } from "./components/TreeCollapseToggle";
+import {
+  SortToggle,
+  cycleSortMode,
+  saveSortMode,
+  getInitialSortMode,
+  type SortMode,
+} from "./components/SortToggle";
 import type { TreeViewHandle } from "./components/TreeView";
 import { RestartButton } from "./components/RestartButton";
 import { DropOverlay } from "./components/DropOverlay";
@@ -68,6 +75,7 @@ export function App() {
       return false;
     }
   });
+  const [sortMode, setSortMode] = useState<SortMode>(getInitialSortMode);
   const [version, setVersion] = useState<VersionInfo | null>(null);
   const knownFileIds = useRef<Set<string>>(new Set());
   const treeViewRef = useRef<TreeViewHandle>(null);
@@ -321,6 +329,35 @@ export function App() {
     reorderFiles(groupName, fileIds);
   }, []);
 
+  const handleSortToggle = useCallback(() => {
+    setSortMode((prev) => {
+      const next = cycleSortMode(prev);
+      saveSortMode(next);
+      if (next === "time-asc" || next === "time-desc") {
+        setTimestampMode((t) => (t === "off" ? "relative" : t));
+      }
+      if (next !== "manual") {
+        // Apply sort to current group
+        const group = groups.find((g) => g.name === activeGroup);
+        if (group) {
+          const sorted = [...group.files].sort((a, b) => {
+            if (next === "alpha-asc") return a.name.localeCompare(b.name);
+            if (next === "alpha-desc") return b.name.localeCompare(a.name);
+            const ta = a.modTime ? new Date(a.modTime).getTime() : 0;
+            const tb = b.modTime ? new Date(b.modTime).getTime() : 0;
+            return next === "time-asc" ? ta - tb : tb - ta;
+          });
+          const ids = sorted.map((f) => f.id);
+          setGroups((prev) =>
+            prev.map((g) => (g.name !== activeGroup ? g : { ...g, files: sorted })),
+          );
+          reorderFiles(activeGroup, ids);
+        }
+      }
+      return next;
+    });
+  }, [groups, activeGroup]);
+
   const headingIds = useMemo(() => headings.map((h) => h.id), [headings]);
 
   const activeHeadingId = useActiveHeading(headingIds, scrollContainer);
@@ -333,11 +370,15 @@ export function App() {
 
   const handleHeadingClick = useCallback((id: string) => {
     const el = document.getElementById(id);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.remove("toc-highlight");
+    void el.offsetWidth;
+    el.classList.add("toc-highlight");
   }, []);
 
   return (
-    <div className="flex flex-col h-full font-sans text-gh-text bg-gh-bg">
+    <div className="flex flex-col h-full font-sans text-gh-text bg-gh-bg overflow-hidden">
       <header className="h-12 shrink-0 flex items-center gap-3 px-4 bg-gh-header-bg text-gh-header-text border-b border-gh-header-border">
         <button
           type="button"
@@ -369,7 +410,9 @@ export function App() {
           onGroupChange={handleGroupChange}
         />
         <ViewModeToggle viewMode={currentViewMode} onToggle={handleViewModeToggle} />
-        {currentViewMode === "tree" && (
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${currentViewMode === "tree" ? "max-w-10 opacity-100" : "max-w-0 opacity-0 -ml-3"}`}
+        >
           <TreeCollapseToggle
             collapsed={treeAllCollapsed}
             onToggle={() => {
@@ -382,7 +425,12 @@ export function App() {
               }
             }}
           />
-        )}
+        </div>
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${currentViewMode === "flat" ? "max-w-10 opacity-100" : "max-w-0 opacity-0 -ml-3"}`}
+        >
+          <SortToggle mode={sortMode} onToggle={handleSortToggle} />
+        </div>
         <SearchToggle isOpen={searchQuery != null} onToggle={handleSearchToggle} />
         <TimestampToggle
           mode={timestampMode}
@@ -393,34 +441,13 @@ export function App() {
           }
         />
         <div className="ml-auto flex items-center gap-3">
-          <a
-            href="https://github.com/marcinkubica/moted"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[10px] leading-none pt-4 cursor-pointer"
-          >
-            {version && (
-              <>
-                <span style={{ color: "#5a8fc7" }} className="hover:underline">
-                  moted
-                </span>
-                <span className="text-gh-text-secondary">
-                  {" "}
-                  v{version.version}
-                  {version.revision && version.revision !== "HEAD"
-                    ? ` (${version.revision.slice(0, 7)})`
-                    : ""}
-                </span>
-              </>
-            )}
-          </a>
           <div className="flex items-center gap-3">
             <WidthToggle isWide={isWide} onToggle={() => setIsWide((v) => !v)} />
             <ThemeToggle />
           </div>
         </div>
       </header>
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-h-0">
         {sidebarOpen && (
           <Sidebar
             groups={groups}
@@ -435,10 +462,11 @@ export function App() {
             noDelete={version?.noDelete}
             noFileMove={version?.noFileMove}
             timestampMode={timestampMode}
+            version={version}
           />
         )}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <div ref={setScrollContainer} className="flex-1 overflow-y-auto p-8 bg-gh-bg">
+        <main className="flex-1 flex flex-col overflow-hidden min-h-0 min-w-0">
+          <div ref={setScrollContainer} className="flex-1 overflow-y-auto p-8 bg-gh-bg min-h-0">
             {activeFileId != null ? (
               <MarkdownViewer
                 fileId={activeFileId}
@@ -461,13 +489,15 @@ export function App() {
             )}
           </div>
         </main>
-        {tocOpen && (
+        <div
+          className={`h-full overflow-hidden transition-[max-width,opacity] duration-200 ease-in-out ${tocOpen ? "max-w-[480px] opacity-100" : "max-w-0 opacity-0"}`}
+        >
           <TocPanel
             headings={headings}
             activeHeadingId={activeHeadingId}
             onHeadingClick={handleHeadingClick}
           />
-        )}
+        </div>
       </div>
       <RestartButton version={version} noRestart={version?.noRestart} />
       {isDragging && <DropOverlay />}

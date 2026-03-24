@@ -1,7 +1,7 @@
----
+
 # Server
 bind: localhost
-port: 6275
+port: 8080
 foreground: true
 quiet: true
 no-open: true
@@ -13,23 +13,30 @@ no-open: true
 ## do not allow to delete files via UI
 #no-delete: true
 
-## shorthand for no-restart + no-delete
+## do not allow to move files between groups via UI
+#no-file-move: true
+
+## shorthand for no-restart + no-delete + no-file-move
 read-only: true
+
+## do not auto-select newly added files in the browser
+## prevents the UI from forcibly opening to new files when they are added
+newfile-no-autoselect: true
 
 ## expose document links in the address bar
 shareable: true
 
-#Groups
+## use actual filenames in URLs instead of hash IDs (?filename=foo.md)
+## falls back to hash ID if filenames are not unique within a group
+true-filenames: true
+
+# Groups
 groups:
   - name: default
     watch:
       - ./**/*.md
-  - name: one due rike fake
+  - name: reports
     watch:
       - /Users/marcin/Projects/ai-watchman-reports/**/*.md
-
-  - name: two shorter
-    watch:
-      - /Users/marcin/Projects/ai-watchman/**/*.md
-
+ 
 

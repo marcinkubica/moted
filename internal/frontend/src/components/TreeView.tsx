@@ -223,8 +223,11 @@ function TreeNodeItem({
         </svg>
         <span className="overflow-hidden text-ellipsis whitespace-nowrap">{node.name}</span>
       </button>
-      {!isCollapsed &&
-        node.children.map((child) => (
+      <div
+        className={`overflow-hidden transition-[max-height,opacity] duration-200 ease-in-out ${isCollapsed ? "max-h-0 opacity-0" : "opacity-100"}`}
+        style={isCollapsed ? undefined : { maxHeight: `${node.children.length * 200}px` }}
+      >
+        {node.children.map((child) => (
           <TreeNodeItem
             key={child.fullPath}
             node={child}
@@ -244,6 +247,7 @@ function TreeNodeItem({
             timestampMode={timestampMode}
           />
         ))}
+      </div>
     </div>
   );
 }

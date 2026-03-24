@@ -12,6 +12,7 @@ import mermaid from "mermaid";
 import { fetchFileContent, openRelativeFile } from "../hooks/useApi";
 import { RawToggle } from "./RawToggle";
 import { TocToggle } from "./TocToggle";
+import { FontSizeToggle } from "./FontSizeToggle";
 import { CopyButton } from "./CopyButton";
 import { RemoveButton } from "./RemoveButton";
 import { ShareButton } from "./ShareButton";
@@ -376,8 +377,67 @@ function HighlightedView({ content, language }: { content: string; language: str
   );
 }
 
+function headingSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-");
+}
+
 function RawView({ content }: { content: string }) {
-  return <HighlightedView content={content} language="markdown" />;
+  const [html, setHtml] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    codeToHtml(content, { lang: "markdown", theme: "github-dark" })
+      .then((result) => {
+        if (!cancelled) setHtml(result);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          codeToHtml(content, { lang: "text", theme: "github-dark" })
+            .then((r) => {
+              if (!cancelled) setHtml(r);
+            })
+            .catch(() => {});
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [content]);
+
+  const injected = useMemo(() => {
+    if (!html) return "";
+    const lines = content.split("\n");
+    const anchors: { line: number; id: string }[] = [];
+    lines.forEach((l, i) => {
+      const m = l.match(/^(#{1,6})\s+(.+)/);
+      if (m) {
+        const text = m[2].replace(/\s*#+\s*$/, "").trim();
+        anchors.push({ line: i, id: headingSlug(text) });
+      }
+    });
+    if (anchors.length === 0) return html;
+    // Inject anchors into the rendered HTML by finding the corresponding line spans
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const lineEls = doc.querySelectorAll(".line");
+    for (const { line, id } of anchors) {
+      const el = lineEls[line];
+      if (el) el.setAttribute("id", id);
+    }
+    return doc.body.innerHTML;
+  }, [html, content]);
+
+  if (injected) {
+    return <div className="[&_pre]:!rounded-none" dangerouslySetInnerHTML={{ __html: injected }} />;
+  }
+  return (
+    <pre>
+      <code>{content}</code>
+    </pre>
+  );
 }
 
 export function MarkdownViewer({
@@ -397,6 +457,21 @@ export function MarkdownViewer({
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [isRawView, setIsRawView] = useState(false);
+  const [fading, setFading] = useState(false);
+  const [fontSize, setFontSize] = useState(() => {
+    try {
+      const stored = localStorage.getItem("mo-font-size");
+      if (stored) {
+        const parsed = parseInt(stored, 10);
+        if (!isNaN(parsed) && parsed >= 12 && parsed <= 24) {
+          return parsed;
+        }
+      }
+    } catch {
+      // localStorage may not be available
+    }
+    return 14;
+  });
   const articleRef = useRef<HTMLElement>(null);
   const [prevFetchKey, setPrevFetchKey] = useState({ fileId, revision });
 
@@ -535,7 +610,7 @@ export function MarkdownViewer({
 
   const prevHeadingsKey = useRef("");
   useEffect(() => {
-    const newHeadings: TocHeading[] = [];
+    let newHeadings: TocHeading[] = [];
     if (!isRawView && articleRef.current) {
       const els = articleRef.current.querySelectorAll("h1, h2, h3, h4, h5, h6");
       for (const el of els) {
@@ -547,13 +622,54 @@ export function MarkdownViewer({
           });
         }
       }
+    } else if (isRawView && content) {
+      const lines = content.split("\n");
+      for (const line of lines) {
+        const match = line.match(/^(#{1,6})\s+(.+)/);
+        if (match) {
+          const level = match[1].length;
+          const text = match[2].replace(/\s*#+\s*$/, "").trim();
+          const id = text
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, "")
+            .replace(/\s+/g, "-");
+          newHeadings.push({ id, text, level });
+        }
+      }
     }
     const key = newHeadings.map((h) => `${h.id}:${h.level}:${h.text}`).join(",");
     if (key !== prevHeadingsKey.current) {
       prevHeadingsKey.current = key;
       onHeadingsChange(newHeadings);
     }
-  }, [isRawView, renderedContent, onHeadingsChange]);
+  }, [isRawView, renderedContent, content, onHeadingsChange]);
+
+  useEffect(() => {
+    const article = articleRef.current;
+    if (!article || isRawView) return;
+
+    const checkTables = () => {
+      const tables = article.querySelectorAll<HTMLTableElement>("table");
+      tables.forEach((table) => {
+        table.classList.add("table-wrap");
+        table.style.tableLayout = "fixed";
+        table.style.width = "100%";
+        table.style.maxWidth = "100%";
+        const cells = table.querySelectorAll<HTMLTableCellElement>("td");
+        cells.forEach((cell) => {
+          cell.style.whiteSpace = "normal";
+          cell.style.overflowWrap = "break-word";
+          cell.style.wordBreak = "break-word";
+          cell.style.minWidth = "0";
+        });
+      });
+    };
+
+    checkTables();
+    const observer = new ResizeObserver(checkTables);
+    observer.observe(article);
+    return () => observer.disconnect();
+  }, [renderedContent, isRawView]);
 
   const onContentRenderedRef = useRef(onContentRendered);
   useLayoutEffect(() => {
@@ -578,13 +694,26 @@ export function MarkdownViewer({
     <div className="flex items-start gap-2">
       <article
         ref={articleRef}
-        className={`markdown-body min-w-0 flex-1${isWide ? " markdown-body--wide" : ""}`}
+        className={`markdown-body min-w-0 flex-1 transition-opacity duration-150 overflow-x-auto${isWide ? " markdown-body--wide" : ""}${fading ? " opacity-0" : " opacity-100"}`}
+        style={{ fontSize: `${fontSize}px`, transition: "font-size 0.2s ease-in-out" }}
       >
         {renderedContent}
       </article>
       <div className="shrink-0 flex flex-col gap-2 -mr-4 -mt-8 sticky -top-5.5">
         {isMarkdown && <TocToggle isTocOpen={isTocOpen} onToggle={onTocToggle} />}
-        {isMarkdown && <RawToggle isRaw={isRawView} onToggle={() => setIsRawView((v) => !v)} />}
+        {isMarkdown && <FontSizeToggle onSizeChange={setFontSize} />}
+        {isMarkdown && (
+          <RawToggle
+            isRaw={isRawView}
+            onToggle={() => {
+              setFading(true);
+              setTimeout(() => {
+                setIsRawView((v) => !v);
+                setFading(false);
+              }, 150);
+            }}
+          />
+        )}
         <CopyButton content={content} />
         {!noDelete && <RemoveButton onRemove={onRemoveFile} />}
         {shareable && <ShareButton />}

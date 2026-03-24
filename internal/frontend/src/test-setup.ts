@@ -2,6 +2,16 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
+// jsdom does not implement ResizeObserver
+vi.stubGlobal(
+  "ResizeObserver",
+  class {
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+  },
+);
+
 // jsdom does not implement IntersectionObserver
 vi.stubGlobal(
   "IntersectionObserver",
