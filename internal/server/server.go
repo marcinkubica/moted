@@ -1414,11 +1414,21 @@ func handleOpenFile(state *State) http.HandlerFunc {
 		}
 
 		baseDir := filepath.Dir(entry.Path)
-		absPath := filepath.Join(baseDir, req.Path)
-		absPath = filepath.Clean(absPath)
+		baseAbs, err := filepath.Abs(baseDir)
+		if err != nil {
+			http.Error(w, "failed to resolve base directory", http.StatusBadRequest)
+			return
+		}
+
+		absPath, err := filepath.Abs(filepath.Join(baseAbs, req.Path))
+		if err != nil {
+			http.Error(w, "invalid path", http.StatusBadRequest)
+			return
+		}
 
 		// Prevent directory traversal outside the base directory
-		if absPath != baseDir && !strings.HasPrefix(absPath, baseDir+string(filepath.Separator)) {
+		relToBase, err := filepath.Rel(baseAbs, absPath)
+		if err != nil || relToBase == ".." || strings.HasPrefix(relToBase, ".."+string(filepath.Separator)) || filepath.IsAbs(relToBase) {
 			http.Error(w, "access denied", http.StatusForbidden)
 			return
 		}
