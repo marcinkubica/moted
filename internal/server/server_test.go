@@ -1818,6 +1818,64 @@ func TestFileID(t *testing.T) {
 	}
 }
 
+func TestHandleOpenFile_PathTraversal(t *testing.T) {
+	t.Run("rejects directory traversal via ../", func(t *testing.T) {
+		s := newTestState(t)
+
+		dir := t.TempDir()
+		p := filepath.Join(dir, "hello.md")
+		if err := os.WriteFile(p, []byte("# Hello"), 0o600); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		entry, err := s.AddFile(p, DefaultGroup)
+		if err != nil {
+			t.Fatalf("failed to add file: %v", err)
+		}
+
+		handler := NewHandler(s)
+		body, _ := json.Marshal(openFileRequest{FileID: entry.ID, Path: "../../etc/passwd"})
+		req := httptest.NewRequest("POST", "/_/api/files/open", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("got status %d, want %d (path traversal should be blocked)", rec.Code, http.StatusForbidden)
+		}
+	})
+
+	t.Run("allows file in same directory", func(t *testing.T) {
+		s := newTestState(t)
+
+		dir := t.TempDir()
+		p1 := filepath.Join(dir, "hello.md")
+		p2 := filepath.Join(dir, "other.md")
+		if err := os.WriteFile(p1, []byte("# Hello"), 0o600); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+		if err := os.WriteFile(p2, []byte("# Other"), 0o600); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		entry, err := s.AddFile(p1, DefaultGroup)
+		if err != nil {
+			t.Fatalf("failed to add file: %v", err)
+		}
+
+		handler := NewHandler(s)
+		body, _ := json.Marshal(openFileRequest{FileID: entry.ID, Path: "other.md"})
+		req := httptest.NewRequest("POST", "/_/api/files/open", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusOK)
+		}
+	})
+}
+
 func TestDirMove(t *testing.T) {
 	ctx, cancel := donegroup.WithCancel(context.Background())
 	defer cancel()

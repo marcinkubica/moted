@@ -497,6 +497,10 @@ func resolvePatterns(patterns []string) ([]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cannot resolve pattern %q: %w", pat, err)
 		}
+		// Warn when a relative pattern (e.g. ../**/*.md) resolves to root.
+		if !filepath.IsAbs(pat) && (abs == "/" || abs == string(filepath.Separator)) {
+			slog.Error("relative pattern resolves to filesystem root; check if this is intentional", "pattern", pat, "resolved", abs)
+		}
 		resolved = append(resolved, abs)
 	}
 	return resolved, nil

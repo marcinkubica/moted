@@ -511,6 +511,11 @@ func (s *State) AddPattern(absPattern, groupName string) ([]*FileEntry, error) {
 	base, relPat := doublestar.SplitPattern(dsPattern)
 	base = filepath.FromSlash(base)
 
+	// Warn about patterns that scan the entire filesystem.
+	if base == "/" || base == string(filepath.Separator) {
+		slog.Error("pattern base directory is the filesystem root; this will likely cause app to hang", "pattern", absPattern, "base", base)
+	}
+
 	info, err := os.Stat(base)
 	if err != nil {
 		return nil, fmt.Errorf("base directory %q does not exist: %w", base, err)
@@ -545,6 +550,7 @@ func (s *State) AddPattern(absPattern, groupName string) ([]*FileEntry, error) {
 	}
 
 	// Initial expansion
+	slog.Info("expanding pattern", "pattern", absPattern, "base", base, "group", groupName)
 	matches, err := doublestar.Glob(os.DirFS(base), relPat, doublestar.WithFilesOnly())
 	if err != nil {
 		return nil, fmt.Errorf("glob expansion failed: %w", err)
@@ -560,6 +566,8 @@ func (s *State) AddPattern(absPattern, groupName string) ([]*FileEntry, error) {
 		}
 		entries = append(entries, entry)
 	}
+
+	slog.Info("pattern expanded", "pattern", absPattern, "matched", len(entries))
 
 	s.watchDirsForPattern(gp)
 
@@ -1405,8 +1413,25 @@ func handleOpenFile(state *State) http.HandlerFunc {
 			return
 		}
 
-		absPath := filepath.Join(filepath.Dir(entry.Path), req.Path)
-		absPath = filepath.Clean(absPath)
+		baseDir := filepath.Dir(entry.Path)
+		baseAbs, err := filepath.Abs(baseDir)
+		if err != nil {
+			http.Error(w, "failed to resolve base directory", http.StatusBadRequest)
+			return
+		}
+
+		absPath, err := filepath.Abs(filepath.Join(baseAbs, req.Path))
+		if err != nil {
+			http.Error(w, "invalid path", http.StatusBadRequest)
+			return
+		}
+
+		// Prevent directory traversal outside the base directory
+		relToBase, err := filepath.Rel(baseAbs, absPath)
+		if err != nil || relToBase == ".." || strings.HasPrefix(relToBase, ".."+string(filepath.Separator)) || filepath.IsAbs(relToBase) {
+			http.Error(w, "access denied", http.StatusForbidden)
+			return
+		}
 
 		if _, err := os.Stat(absPath); err != nil {
 			if os.IsNotExist(err) {

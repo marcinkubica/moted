@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.8] - 2026-04-12
+### Security
+- Fix path traversal vulnerability in open-file API (CodeQL go/path-injection)
+
+### Other
+- Error log when a watch pattern resolves to the filesystem root, which causes the app to hang
 
 ## [0.1.7] - 2025-10-20
 ### Fixed
