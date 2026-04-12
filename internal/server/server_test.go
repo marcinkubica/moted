@@ -2070,7 +2070,7 @@ func TestPollOnce_NoFalsePositives(t *testing.T) {
 		if e.Name == eventFileChanged {
 			t.Fatal("received unexpected file-changed event for unmodified file")
 		}
-	case <-time.After(100 * time.Millisecond):
+	case <-time.After(defaultFileChangeDebounce + 50*time.Millisecond):
 		// expected: no file-changed events
 	}
 }
