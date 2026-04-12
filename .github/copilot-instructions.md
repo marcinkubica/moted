@@ -1,8 +1,8 @@
-# Copilot Instructions for mo (Markdown Opener)
+# Copilot Instructions for moted
 
-## What is mo
+## What is moted
 
-`mo` is a CLI tool that opens Markdown files in a browser with live-reload. It runs a Go HTTP server that embeds a React SPA as a single binary. The Go module is `github.com/k1LoW/mo`.
+`moted` is a server and a CLI tool that opens Markdown files in a browser with live-reload. It runs a Go HTTP server that embeds a React SPA as a single binary. The Go module is `moted`.
 
 ## Build & Run
 
@@ -48,10 +48,10 @@ make ci
 - `--no-open` — Never open browser
 - `--watch` / `-w` — Glob pattern to watch for matching files (repeatable)
 - `--unwatch` — Remove a watched glob pattern (repeatable)
-- `--status` — Show status of all running mo servers
-- `--shutdown` — Shut down the running mo server
-- `--restart` — Restart the running mo server
-- `--foreground` — Run mo server in foreground (do not background)
+- `--status` — Show status of all running moted servers
+- `--shutdown` — Shut down the running moted server
+- `--restart` — Restart the running moted server
+- `--foreground` — Run moted server in foreground (do not background)
 
 ## Architecture
 
@@ -97,7 +97,7 @@ Key endpoints:
 - **File IDs**: Files get deterministic string IDs derived from the SHA-256 hash of the absolute path (first 8 hex characters). IDs are stable across server restarts, enabling deep linking. The frontend primarily references files by ID. Absolute paths are available via `FileEntry.path` for display.
 - **Tab groups**: Files are organized into named groups (default: "default"). Group name maps to the URL path.
 - **Live-reload via SSE**: fsnotify watches files; `file-changed` events trigger frontend to re-fetch content by file ID.
-- **State persistence**: Server state (files, groups, patterns) is backed up to `$XDG_STATE_HOME/mo/backup/mo-<port>.json` via `internal/backup`. When starting a new server, backup is always restored and merged with CLI-specified files/patterns (restored entries first, CLI entries appended, duplicates skipped). The backup file is only deleted when the CLI is invoked with `--clear`.
+- **State persistence**: Server state (files, groups, patterns) is backed up to `$XDG_STATE_HOME/moted/backup/moted-<port>.json` via `internal/backup`. When starting a new server, backup is always restored and merged with CLI-specified files/patterns (restored entries first, CLI entries appended, duplicates skipped). The backup file is only deleted when the CLI is invoked with `--clear`.
 - **Glob pattern watching**: `--watch` registers glob patterns that are expanded to matching files and monitored for new files via fsnotify directory watches. Patterns are stored with reference-counted directory watches (`watchedDirs map[string]int`). `--unwatch` removes patterns and decrements watch ref counts. Groups persist as long as they have files or patterns.
 - **Resizable panels**: Both `Sidebar.tsx` (left) and `TocPanel.tsx` (right) use the same drag-to-resize pattern with localStorage persistence. Left sidebar uses `e.clientX`, right panel uses `window.innerWidth - e.clientX`.
 - **Toolbar buttons in content area**: The toolbar column (ToC + Raw toggles) lives inside `MarkdownViewer.tsx`, positioned with `shrink-0 flex flex-col gap-2 -mr-4 -mt-4` to align with the header.

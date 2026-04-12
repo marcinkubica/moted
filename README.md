@@ -19,6 +19,7 @@
 > [!WARNING]
 > Application is not ready for public exposure and should be run in trusted environments only.
 
+[![moted](images/moted.png)](images/moted.png)
 
 ## What's New in moted
 

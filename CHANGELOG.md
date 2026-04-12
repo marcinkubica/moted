@@ -1,5 +1,16 @@
 # Changelog
 
+
+## [0.1.6] - 2025-10-20
+### Dependency Updates
+- https://github.com/marcinkubica/moted/pull/9
+- https://github.com/marcinkubica/moted/pull/10
+
+### Other Changes
+- Workflows updates
+
+# Mo (Original releases)
+
 ## [v0.18.3](https://github.com/k1LoW/mo/compare/v0.18.2...v0.18.3) - 2026-03-13
 ### Dependency Updates ⬆️
 - chore(deps): bump the dependencies group with 2 updates by @dependabot[bot] in https://github.com/k1LoW/mo/pull/111
