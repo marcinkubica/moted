@@ -9,6 +9,8 @@ export interface FileEntry {
 export interface Group {
   name: string;
   files: FileEntry[];
+  error?: string;
+  retryAt?: string;
 }
 
 export interface FileContent {

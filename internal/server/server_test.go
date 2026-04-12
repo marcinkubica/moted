@@ -38,6 +38,8 @@ func newTestState(t *testing.T) *State {
 		watchedDirs:        make(map[string]int),
 		fileChangeDebounce: defaultFileChangeDebounce,
 		fileChangeTimers:   make(map[string]*time.Timer),
+		gcsErrors:          make(map[string]gcsGroupError),
+		gcsRetryTimers:     make(map[string]*time.Timer),
 	}
 	_ = ctx
 	return s

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0] - 2026-04-13
+### Added
+- Native Google Cloud Storage (GCS) support with Pub/Sub change notifications. Watch GCS objects using `gs://` URIs in group watch patterns (e.g. `gs://bucket/reports/**/*.md`).
+- Per-bucket Pub/Sub subscription config for real-time file change detection without polling.
+- Disk cache for GCS file content (`$XDG_CACHE_HOME/moted/gcs/`), invalidated on Pub/Sub notification.
+- Error state display in sidebar when GCS groups fail to initialize, with automatic retry every 30 seconds.
+- Example GCS config file: `docs/config-gcs.example.yaml`.
+
 ## [0.2.0] - 2026-04-12
 ### Added
 - `--poll-interval` flag and `poll-interval` config option for periodic file change detection. Useful for FUSE mounts (e.g. GCSFuse) where inotify events are not emitted for externally modified files. When enabled, moted periodically re-expands glob patterns to discover new files and stats tracked files to detect content changes.
