@@ -1985,3 +1985,92 @@ func TestDirMove(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 	}
 }
+
+func TestPollOnce_DetectsNewFiles(t *testing.T) {
+	dir := t.TempDir()
+	f1 := filepath.Join(dir, "existing.md")
+	os.WriteFile(f1, []byte("# existing"), 0o600) //nolint:errcheck
+
+	s := newTestState(t)
+	s.pollSnapshots = make(map[string]pollSnapshot)
+
+	absPattern := filepath.Join(dir, "**", "*.md")
+	if _, err := s.AddPattern(absPattern, DefaultGroup); err != nil {
+		t.Fatalf("AddPattern: %v", err)
+	}
+
+	if s.FindFile(FileID(f1)) == nil {
+		t.Fatal("existing.md should have been added by AddPattern")
+	}
+
+	// Create a new file after initial expansion.
+	f2 := filepath.Join(dir, "new.md")
+	os.WriteFile(f2, []byte("# new"), 0o600) //nolint:errcheck
+
+	s.pollOnce()
+
+	if s.FindFile(FileID(f2)) == nil {
+		t.Fatal("new.md should have been discovered by pollOnce")
+	}
+}
+
+func TestPollOnce_DetectsFileChanges(t *testing.T) {
+	dir := t.TempDir()
+	f := filepath.Join(dir, "test.md")
+	os.WriteFile(f, []byte("# original"), 0o600) //nolint:errcheck
+
+	s := newTestState(t)
+	s.pollSnapshots = make(map[string]pollSnapshot)
+	s.AddFile(f, DefaultGroup) //nolint:errcheck
+
+	ch := s.Subscribe()
+	defer s.Unsubscribe(ch)
+
+	// First poll records the snapshot.
+	s.pollOnce()
+
+	// Modify the file (ensure different mtime by advancing).
+	time.Sleep(50 * time.Millisecond)
+	os.WriteFile(f, []byte("# modified content"), 0o600) //nolint:errcheck
+
+	// Second poll should detect the change.
+	s.pollOnce()
+
+	deadline := time.After(500 * time.Millisecond)
+	for {
+		select {
+		case e := <-ch:
+			if e.Name == eventFileChanged {
+				return // success
+			}
+		case <-deadline:
+			t.Fatal("timed out waiting for file-changed event from pollOnce")
+		}
+	}
+}
+
+func TestPollOnce_NoFalsePositives(t *testing.T) {
+	dir := t.TempDir()
+	f := filepath.Join(dir, "stable.md")
+	os.WriteFile(f, []byte("# stable"), 0o600) //nolint:errcheck
+
+	s := newTestState(t)
+	s.pollSnapshots = make(map[string]pollSnapshot)
+	s.AddFile(f, DefaultGroup) //nolint:errcheck
+
+	ch := s.Subscribe()
+	defer s.Unsubscribe(ch)
+
+	// Two polls with no file modification.
+	s.pollOnce()
+	s.pollOnce()
+
+	select {
+	case e := <-ch:
+		if e.Name == eventFileChanged {
+			t.Fatal("received unexpected file-changed event for unmodified file")
+		}
+	case <-time.After(defaultFileChangeDebounce + 50*time.Millisecond):
+		// expected: no file-changed events
+	}
+}

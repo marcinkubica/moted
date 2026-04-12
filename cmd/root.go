@@ -64,6 +64,7 @@ var (
 	trueFilenames       bool
 	configPath          string
 	shouty              bool
+	pollIntervalStr     string
 )
 
 var rootCmd = &cobra.Command{
@@ -191,6 +192,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&trueFilenames, "true-filenames", false, "Use actual filenames in URLs instead of hash IDs (uses ?filename= param)")
 	rootCmd.Flags().StringVar(&configPath, "config", "", "Path to YAML config file (mutually exclusive with file arguments, --target, and --watch)")
 	rootCmd.Flags().BoolVar(&shouty, "shouty", false, "Show detailed file listing on startup")
+	rootCmd.Flags().StringVar(&pollIntervalStr, "poll-interval", "", "Poll for file changes at this interval (e.g. 5s, 1m). Useful for FUSE mounts like GCSFuse.")
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -1087,6 +1089,17 @@ func startServer(ctx context.Context, addr string, filesByGroup map[string][]str
 
 	state := server.NewState(ctx)
 	state.Configure(noRestart, noDelete, noFileMove, noNewFileAutoSelect, shareable, trueFilenames)
+
+	if pollIntervalStr != "" {
+		d, err := time.ParseDuration(pollIntervalStr)
+		if err != nil {
+			return fmt.Errorf("invalid --poll-interval %q: %w", pollIntervalStr, err)
+		}
+		if d <= 0 {
+			return fmt.Errorf("--poll-interval must be positive, got %s", d)
+		}
+		state.SetPollInterval(ctx, d)
+	}
 
 	state.EnableBackup(ctx, func(data server.RestoreData) {
 		if err := backup.Save(port, data); err != nil {

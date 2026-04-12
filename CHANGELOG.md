@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.0] - 2026-04-12
+### Added
+- `--poll-interval` flag and `poll-interval` config option for periodic file change detection. Useful for FUSE mounts (e.g. GCSFuse) where inotify events are not emitted for externally modified files. When enabled, moted periodically re-expands glob patterns to discover new files and stats tracked files to detect content changes.
+
 ## [0.1.10] - 2026-04-12
 ### Security
 - Require absolute paths in add-file API to prevent path injection (CodeQL go/path-injection)

@@ -30,6 +30,10 @@ shareable: true
 ## falls back to hash ID if filenames are not unique within a group
 true-filenames: true
 
+## poll for file changes at this interval (e.g. 5s, 1m)
+## useful for FUSE mounts (e.g. GCSFuse) that don't emit inotify events
+poll-interval: 5s
+
 # Groups
 groups:
   - name: default
