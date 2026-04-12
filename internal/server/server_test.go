@@ -1989,7 +1989,7 @@ func TestDirMove(t *testing.T) {
 func TestPollOnce_DetectsNewFiles(t *testing.T) {
 	dir := t.TempDir()
 	f1 := filepath.Join(dir, "existing.md")
-	os.WriteFile(f1, []byte("# existing"), 0644)
+	os.WriteFile(f1, []byte("# existing"), 0o600) //nolint:errcheck
 
 	s := newTestState(t)
 	s.pollSnapshots = make(map[string]pollSnapshot)
@@ -2005,7 +2005,7 @@ func TestPollOnce_DetectsNewFiles(t *testing.T) {
 
 	// Create a new file after initial expansion.
 	f2 := filepath.Join(dir, "new.md")
-	os.WriteFile(f2, []byte("# new"), 0644)
+	os.WriteFile(f2, []byte("# new"), 0o600) //nolint:errcheck
 
 	s.pollOnce()
 
@@ -2017,11 +2017,11 @@ func TestPollOnce_DetectsNewFiles(t *testing.T) {
 func TestPollOnce_DetectsFileChanges(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, "test.md")
-	os.WriteFile(f, []byte("# original"), 0644)
+	os.WriteFile(f, []byte("# original"), 0o600) //nolint:errcheck
 
 	s := newTestState(t)
 	s.pollSnapshots = make(map[string]pollSnapshot)
-	s.AddFile(f, DefaultGroup)
+	s.AddFile(f, DefaultGroup) //nolint:errcheck
 
 	ch := s.Subscribe()
 	defer s.Unsubscribe(ch)
@@ -2031,7 +2031,7 @@ func TestPollOnce_DetectsFileChanges(t *testing.T) {
 
 	// Modify the file (ensure different mtime by advancing).
 	time.Sleep(50 * time.Millisecond)
-	os.WriteFile(f, []byte("# modified content"), 0644)
+	os.WriteFile(f, []byte("# modified content"), 0o600) //nolint:errcheck
 
 	// Second poll should detect the change.
 	s.pollOnce()
@@ -2052,11 +2052,11 @@ func TestPollOnce_DetectsFileChanges(t *testing.T) {
 func TestPollOnce_NoFalsePositives(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, "stable.md")
-	os.WriteFile(f, []byte("# stable"), 0644)
+	os.WriteFile(f, []byte("# stable"), 0o600) //nolint:errcheck
 
 	s := newTestState(t)
 	s.pollSnapshots = make(map[string]pollSnapshot)
-	s.AddFile(f, DefaultGroup)
+	s.AddFile(f, DefaultGroup) //nolint:errcheck
 
 	ch := s.Subscribe()
 	defer s.Unsubscribe(ch)
