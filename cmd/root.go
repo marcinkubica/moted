@@ -1095,6 +1095,9 @@ func startServer(ctx context.Context, addr string, filesByGroup map[string][]str
 		if err != nil {
 			return fmt.Errorf("invalid --poll-interval %q: %w", pollIntervalStr, err)
 		}
+		if d <= 0 {
+			return fmt.Errorf("--poll-interval must be positive, got %s", d)
+		}
 		state.SetPollInterval(ctx, d)
 	}
 

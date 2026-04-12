@@ -1007,13 +1007,12 @@ func (s *State) pollOnce() {
 		}
 		for _, m := range matches {
 			abs := filepath.Join(base, m)
-			ids := s.findIDsByPath(abs)
-			if len(ids) == 0 {
-				// New file discovered
-				if _, err := s.AddFile(abs, gp.Group); err != nil {
-					slog.Warn("poll: skipping file", "path", abs, "error", err)
-					continue
-				}
+			existing := s.findIDsByPath(abs)
+			if _, err := s.AddFile(abs, gp.Group); err != nil {
+				slog.Warn("poll: skipping file", "path", abs, "error", err)
+				continue
+			}
+			if len(existing) == 0 {
 				slog.Info("poll: auto-added file", "path", abs, "pattern", gp.Pattern, "group", gp.Group)
 			}
 		}
@@ -1021,44 +1020,46 @@ func (s *State) pollOnce() {
 
 	// Phase 2: Stat all tracked files and detect changes.
 	s.mu.RLock()
-	var tracked []struct {
-		path string
-		ids  []string
-	}
+	trackedPaths := make(map[string]struct{})
 	for _, g := range s.groups {
 		for _, f := range g.Files {
 			if f.Uploaded || f.Path == "" {
 				continue
 			}
-			tracked = append(tracked, struct {
-				path string
-				ids  []string
-			}{path: f.Path, ids: []string{f.ID}})
+			trackedPaths[f.Path] = struct{}{}
 		}
 	}
 	s.mu.RUnlock()
 
-	for _, t := range tracked {
-		info, err := os.Stat(t.path)
+	for path := range trackedPaths {
+		info, err := os.Stat(path)
 		if err != nil {
 			continue
 		}
 		snap := pollSnapshot{size: info.Size(), modTime: info.ModTime()}
 
 		s.mu.Lock()
-		prev, known := s.pollSnapshots[t.path]
-		s.pollSnapshots[t.path] = snap
+		prev, known := s.pollSnapshots[path]
+		s.pollSnapshots[path] = snap
 		s.mu.Unlock()
 
 		if !known {
-			// First observation; just record it.
 			continue
 		}
 		if snap.size != prev.size || !snap.modTime.Equal(prev.modTime) {
-			slog.Info("poll: file changed", "path", t.path)
-			s.notifyFileChanged(t.ids)
+			slog.Info("poll: file changed", "path", path)
+			s.scheduleFileChanged(path)
 		}
 	}
+
+	// Prune snapshots for paths no longer tracked.
+	s.mu.Lock()
+	for path := range s.pollSnapshots {
+		if _, ok := trackedPaths[path]; !ok {
+			delete(s.pollSnapshots, path)
+		}
+	}
+	s.mu.Unlock()
 }
 
 func (s *State) findIDsByPath(absPath string) []string {
