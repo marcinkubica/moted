@@ -7,7 +7,7 @@
 - https://github.com/marcinkubica/moted/pull/10
 
 ### Other Changes
-- Workflows updates
+- minor updates
 
 # Mo (Original releases)
 
