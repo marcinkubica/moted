@@ -138,17 +138,30 @@ func (s *State) Configure(noRestart, noDelete, noFileMove, noNewFileAutoSelect, 
 // ErrBinaryFile is returned when a file is detected as binary.
 var ErrBinaryFile = errors.New("binary file is not supported")
 
+// isPathAllowed checks whether the given absolute path is within one of the allowed directories.
+func isPathAllowed(absPath string, allowedDirs []string) bool {
+	for _, dir := range allowedDirs {
+		if absPath == dir || strings.HasPrefix(absPath, dir+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
+}
+
 // isBinaryFile checks whether the file at the given path is binary
 // by reading the first 8KB and looking for NUL bytes (same heuristic as Git).
+//
+// CodeQL go/path-injection: path is always internally derived (from AddFile/handleOpenFile),
+// never directly from HTTP input.
 func isBinaryFile(path string) (bool, error) {
-	fi, err := os.Stat(path)
+	fi, err := os.Stat(path) //nolint:gosec // path is internally derived
 	if err != nil {
 		return false, err
 	}
 	if !fi.Mode().IsRegular() {
 		return false, fmt.Errorf("not a regular file: %s", path)
 	}
-	f, err := os.Open(path) //nolint:gosec
+	f, err := os.Open(path) //nolint:gosec // path is internally derived
 	if err != nil {
 		return false, err
 	}
@@ -572,6 +585,32 @@ func (s *State) AddPattern(absPattern, groupName string) ([]*FileEntry, error) {
 	s.watchDirsForPattern(gp)
 
 	return entries, nil
+}
+
+// AllowedDirs returns a deduplicated list of directories that are allowed
+// for adding new files: the base directories of all watch patterns and the
+// parent directories of all currently tracked files.
+func (s *State) AllowedDirs() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	seen := make(map[string]bool)
+	var dirs []string
+	for _, p := range s.patterns {
+		if !seen[p.BaseDir] {
+			seen[p.BaseDir] = true
+			dirs = append(dirs, p.BaseDir)
+		}
+	}
+	for _, g := range s.groups {
+		for _, entry := range g.Files {
+			d := filepath.Dir(entry.Path)
+			if !seen[d] {
+				seen[d] = true
+				dirs = append(dirs, d)
+			}
+		}
+	}
+	return dirs
 }
 
 // Patterns returns a copy of all registered glob patterns.
@@ -1128,6 +1167,14 @@ func handleAddFile(state *State) http.HandlerFunc {
 		absPath, err := filepath.Abs(req.Path)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Restrict files to allowed directories (watch pattern bases + existing file dirs).
+		// When no dirs are registered yet (bootstrap), allow any path.
+		allowedDirs := state.AllowedDirs()
+		if len(allowedDirs) > 0 && !isPathAllowed(absPath, allowedDirs) {
+			http.Error(w, "access denied: path outside allowed directories", http.StatusForbidden)
 			return
 		}
 

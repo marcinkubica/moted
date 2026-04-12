@@ -1491,6 +1491,69 @@ func TestHandleAddFile_RejectsBinaryFile(t *testing.T) {
 	})
 }
 
+func TestHandleAddFile_PathRestriction(t *testing.T) {
+	t.Run("blocks file outside allowed directories", func(t *testing.T) {
+		s := newTestState(t)
+
+		// Add an initial file to establish an allowed directory
+		dir := t.TempDir()
+		p := filepath.Join(dir, "hello.md")
+		if err := os.WriteFile(p, []byte("# Hello"), 0o600); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+		if _, err := s.AddFile(p, DefaultGroup); err != nil {
+			t.Fatalf("failed to add file: %v", err)
+		}
+
+		// Try to add a file in a different directory
+		otherDir := t.TempDir()
+		outsidePath := filepath.Join(otherDir, "secret.md")
+		if err := os.WriteFile(outsidePath, []byte("# Secret"), 0o600); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		handler := NewHandler(s)
+		body, _ := json.Marshal(addFileRequest{Path: outsidePath, Group: DefaultGroup})
+		req := httptest.NewRequest("POST", "/_/api/files", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("got status %d, want %d (path outside allowed dirs should be blocked)", rec.Code, http.StatusForbidden)
+		}
+	})
+
+	t.Run("allows file in same directory as existing file", func(t *testing.T) {
+		s := newTestState(t)
+
+		dir := t.TempDir()
+		p1 := filepath.Join(dir, "hello.md")
+		if err := os.WriteFile(p1, []byte("# Hello"), 0o600); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+		if _, err := s.AddFile(p1, DefaultGroup); err != nil {
+			t.Fatalf("failed to add file: %v", err)
+		}
+
+		p2 := filepath.Join(dir, "other.md")
+		if err := os.WriteFile(p2, []byte("# Other"), 0o600); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		handler := NewHandler(s)
+		body, _ := json.Marshal(addFileRequest{Path: p2, Group: DefaultGroup})
+		req := httptest.NewRequest("POST", "/_/api/files", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("got status %d, want %d", rec.Code, http.StatusOK)
+		}
+	})
+}
+
 func TestHandleUploadFile(t *testing.T) {
 	t.Run("uploads file via HTTP", func(t *testing.T) {
 		s := newTestState(t)
