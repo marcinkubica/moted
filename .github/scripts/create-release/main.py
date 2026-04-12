@@ -62,7 +62,8 @@ def create_release(gh: Github, version: str, changelog: str):
     """
     Creates a GitHub release for the given version with the provided changelog.
     """
-    repo = gh.get_repo("marcinkubica/moted")
+    repo_name = os.environ.get("GITHUB_REPOSITORY")
+    repo = gh.get_repo(repo_name)
     # Check if a release with this tag already exists and delete it
     try:
         existing_release = repo.get_release(version)
