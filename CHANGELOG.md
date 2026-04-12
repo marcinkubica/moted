@@ -7,7 +7,7 @@
 - https://github.com/marcinkubica/moted/pull/10
 
 ### Other Changes
-- minor updates
+- add make-release script
 
 # Mo (Original releases)
 
