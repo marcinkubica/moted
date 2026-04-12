@@ -31,7 +31,7 @@
 - File timestamps (creation time or relative time)
 - Readiness endpoint for health checks
 - [docker build](https://github.com/marcinkubica/moted/pkgs/container/moted) image
-
+- Polling mode for FUSE mounts (e.g. GCSFuse) where inotify events are not emitted for externally modified files
 
 **UI changes:**
 - Sticky toolbar for easier user actions while scrolling

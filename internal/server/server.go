@@ -88,12 +88,21 @@ type State struct {
 	backupSaveFn func(RestoreData) // backup write callback
 	backupDone   chan struct{}     // closed when backupLoop exits
 
+	pollInterval  time.Duration
+	pollSnapshots map[string]pollSnapshot // path → last known state
+
 	noRestart           bool
 	noDelete            bool
 	noFileMove          bool
 	noNewFileAutoSelect bool
 	shareable           bool
 	trueFilenames       bool
+}
+
+// pollSnapshot holds the last known metadata of a tracked file for change detection.
+type pollSnapshot struct {
+	size    int64
+	modTime time.Time
 }
 
 const defaultFileChangeDebounce = 200 * time.Millisecond
@@ -947,6 +956,108 @@ func (s *State) notifyFileChanged(ids []string) {
 			Name: eventFileChanged,
 			Data: string(b),
 		})
+	}
+}
+
+// SetPollInterval enables periodic polling for file changes at the given
+// interval. This is useful for FUSE filesystems (e.g. GCSFuse) that do not
+// emit inotify events for externally modified files. When enabled, the poll
+// loop periodically re-expands glob patterns to discover new files and stats
+// tracked files to detect content changes.
+func (s *State) SetPollInterval(ctx context.Context, d time.Duration) {
+	if d <= 0 {
+		return
+	}
+	s.pollInterval = d
+	s.pollSnapshots = make(map[string]pollSnapshot)
+	slog.Info("polling enabled", "interval", d.String())
+	donegroup.Go(ctx, func() error {
+		s.pollLoop(ctx)
+		return nil
+	})
+}
+
+func (s *State) pollLoop(ctx context.Context) {
+	ticker := time.NewTicker(s.pollInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.pollOnce()
+		}
+	}
+}
+
+func (s *State) pollOnce() {
+	// Phase 1: Re-expand glob patterns to discover new files.
+	s.mu.RLock()
+	patterns := make([]*GlobPattern, len(s.patterns))
+	copy(patterns, s.patterns)
+	s.mu.RUnlock()
+
+	for _, gp := range patterns {
+		base := gp.BaseDir
+		_, relPat := doublestar.SplitPattern(gp.PatternSlash)
+		matches, err := doublestar.Glob(os.DirFS(base), relPat, doublestar.WithFilesOnly())
+		if err != nil {
+			slog.Warn("poll: glob expansion failed", "pattern", gp.Pattern, "error", err)
+			continue
+		}
+		for _, m := range matches {
+			abs := filepath.Join(base, m)
+			ids := s.findIDsByPath(abs)
+			if len(ids) == 0 {
+				// New file discovered
+				if _, err := s.AddFile(abs, gp.Group); err != nil {
+					slog.Warn("poll: skipping file", "path", abs, "error", err)
+					continue
+				}
+				slog.Info("poll: auto-added file", "path", abs, "pattern", gp.Pattern, "group", gp.Group)
+			}
+		}
+	}
+
+	// Phase 2: Stat all tracked files and detect changes.
+	s.mu.RLock()
+	var tracked []struct {
+		path string
+		ids  []string
+	}
+	for _, g := range s.groups {
+		for _, f := range g.Files {
+			if f.Uploaded || f.Path == "" {
+				continue
+			}
+			tracked = append(tracked, struct {
+				path string
+				ids  []string
+			}{path: f.Path, ids: []string{f.ID}})
+		}
+	}
+	s.mu.RUnlock()
+
+	for _, t := range tracked {
+		info, err := os.Stat(t.path)
+		if err != nil {
+			continue
+		}
+		snap := pollSnapshot{size: info.Size(), modTime: info.ModTime()}
+
+		s.mu.Lock()
+		prev, known := s.pollSnapshots[t.path]
+		s.pollSnapshots[t.path] = snap
+		s.mu.Unlock()
+
+		if !known {
+			// First observation; just record it.
+			continue
+		}
+		if snap.size != prev.size || !snap.modTime.Equal(prev.modTime) {
+			slog.Info("poll: file changed", "path", t.path)
+			s.notifyFileChanged(t.ids)
+		}
 	}
 }
 

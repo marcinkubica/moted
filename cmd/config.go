@@ -24,6 +24,7 @@ type configFile struct {
 	TrueFilenames       bool          `yaml:"true-filenames"`
 	ServerMode          bool          `yaml:"server"`
 	Shouty              bool          `yaml:"shouty"`
+	PollInterval        string        `yaml:"poll-interval"`
 	Groups              []groupConfig `yaml:"groups"`
 }
 
@@ -86,6 +87,9 @@ func applyConfig(cmd *cobra.Command, cfg *configFile) {
 	}
 	if !cmd.Flags().Changed("shouty") && cfg.Shouty {
 		shouty = true
+	}
+	if !cmd.Flags().Changed("poll-interval") && cfg.PollInterval != "" {
+		pollIntervalStr = cfg.PollInterval
 	}
 }
 
