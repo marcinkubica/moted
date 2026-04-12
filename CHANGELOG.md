@@ -1,6 +1,10 @@
 # Changelog
 
 
+## [0.1.7] - 2025-10-20
+### Fixed
+- Fix linting errors: funcorder, misspell, errcheck in server code
+
 ## [0.1.6] - 2025-10-20
 ### Dependency Updates
 - https://github.com/marcinkubica/moted/pull/9

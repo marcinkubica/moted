@@ -6,7 +6,7 @@
 
 # moted
 
-[![build](https://github.com/marcinkubica/moted/actions/workflows/ci.yml/badge.svg)](https://github.com/marcinkubica/moted/actions/workflows/ci.yml)
+[![ci run](https://github.com/marcinkubica/moted/actions/workflows/ci.yml/badge.svg)](https://github.com/marcinkubica/moted/actions/workflows/ci.yml)
 
 > **moted:** _mo_ but hosted
 >
