@@ -10,13 +10,13 @@ updates:
     schedule:
       interval: "weekly"
       time: "08:00"
-      timezone: "Asia/Tokyo"
+      timezone: "Europe/London"
     commit-message:
       prefix: "chore"
       include: "scope"
     open-pull-requests-limit: 10
     assignees:
-      - "k1LoW"
+      - "marcinkubica"
 
   - package-ecosystem: "gomod"
     directory: "/"
@@ -27,13 +27,13 @@ updates:
     schedule:
       interval: "weekly"
       time: "08:00"
-      timezone: "Asia/Tokyo"
+      timezone: "Europe/London"
     commit-message:
       prefix: "chore"
       include: "scope"
     open-pull-requests-limit: 10
     assignees:
-      - "k1LoW"
+      - "marcinkubica"
 
   - package-ecosystem: "npm"
     directory: "/internal/frontend"
@@ -44,10 +44,10 @@ updates:
     schedule:
       interval: "weekly"
       time: "08:00"
-      timezone: "Asia/Tokyo"
+      timezone: "Europe/London"
     commit-message:
       prefix: "chore"
       include: "scope"
     open-pull-requests-limit: 10
     assignees:
-      - "k1LoW"
+      - "marcinkubica"
