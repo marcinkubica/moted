@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.10] - 2026-04-12
+### Security
+- Require absolute paths in add-file API to prevent path injection (CodeQL go/path-injection)
+
 ## [0.1.9] - 2026-04-12
 ### Security
 - Restrict add-file API to allowed directories (watch pattern bases + existing file dirs)
