@@ -727,86 +727,6 @@ func (s *State) EnableBackup(ctx context.Context, saveFn func(RestoreData)) {
 	})
 }
 
-// snapshotRestoreData creates a RestoreData snapshot of the current state.
-// Caller must hold s.mu (at least RLock).
-func (s *State) snapshotRestoreData() RestoreData {
-	data := RestoreData{
-		Groups: make(map[string][]string, len(s.groups)),
-	}
-	for name, g := range s.groups {
-		paths := make([]string, 0, len(g.Files))
-		for _, f := range g.Files {
-			if f.Uploaded {
-				data.UploadedFiles = append(data.UploadedFiles, UploadedFileData{
-					Name:    f.Name,
-					Content: f.content,
-					Group:   name,
-				})
-				continue
-			}
-			paths = append(paths, f.Path)
-		}
-		data.Groups[name] = paths
-	}
-
-	if len(s.patterns) > 0 {
-		data.Patterns = make(map[string][]string)
-		for _, p := range s.patterns {
-			data.Patterns[p.Group] = append(data.Patterns[p.Group], p.Pattern)
-		}
-	}
-
-	return data
-}
-
-// markDirty signals that state has changed and a backup save is needed.
-// Non-blocking: safe to call while holding s.mu.
-func (s *State) markDirty() {
-	if s.backupCh == nil {
-		return
-	}
-	select {
-	case s.backupCh <- struct{}{}:
-	default:
-	}
-}
-
-func (s *State) backupLoop(ctx context.Context) {
-	const debounce = 1 * time.Second
-	timer := time.NewTimer(debounce)
-	timer.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
-			s.saveBackup()
-			return
-		case _, ok := <-s.backupCh:
-			if !ok {
-				return
-			}
-			timer.Reset(debounce)
-		case <-timer.C:
-			s.saveBackup()
-		}
-	}
-}
-
-func (s *State) saveBackup() {
-	if s.backupSaveFn == nil {
-		return
-	}
-	s.mu.RLock()
-	data := s.snapshotRestoreData()
-	s.mu.RUnlock()
-	s.backupSaveFn(data)
-}
-
 // groupHasPatterns reports whether the group has any registered watch patterns.
 // Caller must hold s.mu.
 func (s *State) groupHasPatterns(groupName string) bool {
@@ -975,6 +895,86 @@ func (s *State) SetPollInterval(ctx context.Context, d time.Duration) {
 		s.pollLoop(ctx)
 		return nil
 	})
+}
+
+// snapshotRestoreData creates a RestoreData snapshot of the current state.
+// Caller must hold s.mu (at least RLock).
+func (s *State) snapshotRestoreData() RestoreData {
+	data := RestoreData{
+		Groups: make(map[string][]string, len(s.groups)),
+	}
+	for name, g := range s.groups {
+		paths := make([]string, 0, len(g.Files))
+		for _, f := range g.Files {
+			if f.Uploaded {
+				data.UploadedFiles = append(data.UploadedFiles, UploadedFileData{
+					Name:    f.Name,
+					Content: f.content,
+					Group:   name,
+				})
+				continue
+			}
+			paths = append(paths, f.Path)
+		}
+		data.Groups[name] = paths
+	}
+
+	if len(s.patterns) > 0 {
+		data.Patterns = make(map[string][]string)
+		for _, p := range s.patterns {
+			data.Patterns[p.Group] = append(data.Patterns[p.Group], p.Pattern)
+		}
+	}
+
+	return data
+}
+
+// markDirty signals that state has changed and a backup save is needed.
+// Non-blocking: safe to call while holding s.mu.
+func (s *State) markDirty() {
+	if s.backupCh == nil {
+		return
+	}
+	select {
+	case s.backupCh <- struct{}{}:
+	default:
+	}
+}
+
+func (s *State) backupLoop(ctx context.Context) {
+	const debounce = 1 * time.Second
+	timer := time.NewTimer(debounce)
+	timer.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			s.saveBackup()
+			return
+		case _, ok := <-s.backupCh:
+			if !ok {
+				return
+			}
+			timer.Reset(debounce)
+		case <-timer.C:
+			s.saveBackup()
+		}
+	}
+}
+
+func (s *State) saveBackup() {
+	if s.backupSaveFn == nil {
+		return
+	}
+	s.mu.RLock()
+	data := s.snapshotRestoreData()
+	s.mu.RUnlock()
+	s.backupSaveFn(data)
 }
 
 func (s *State) pollLoop(ctx context.Context) {
