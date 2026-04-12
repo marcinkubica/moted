@@ -8,6 +8,7 @@
 
 ### Other Changes
 - add make-release script
+- workflows updates
 
 # Mo (Original releases)
 
