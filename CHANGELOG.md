@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.9] - 2026-04-12
+### Security
+- Restrict add-file API to allowed directories (watch pattern bases + existing file dirs)
+- Add CodeQL suppression comments for isBinaryFile false positives alerts
+
 ## [0.1.8] - 2026-04-12
 ### Security
 - Fix path traversal vulnerability in open-file API (CodeQL go/path-injection)
