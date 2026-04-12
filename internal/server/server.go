@@ -1164,11 +1164,12 @@ func handleAddFile(state *State) http.HandlerFunc {
 			return
 		}
 
-		absPath, err := filepath.Abs(req.Path)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		// Require an absolute path; reject relative paths from HTTP clients.
+		if !filepath.IsAbs(req.Path) {
+			http.Error(w, "path must be absolute", http.StatusBadRequest)
 			return
 		}
+		absPath := filepath.Clean(req.Path)
 
 		// Restrict files to allowed directories (watch pattern bases + existing file dirs).
 		// When no dirs are registered yet (bootstrap), allow any path.
