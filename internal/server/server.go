@@ -1405,8 +1405,24 @@ func handleOpenFile(state *State) http.HandlerFunc {
 			return
 		}
 
-		absPath := filepath.Join(filepath.Dir(entry.Path), req.Path)
-		absPath = filepath.Clean(absPath)
+		baseDir := filepath.Dir(entry.Path)
+		baseAbs, err := filepath.Abs(baseDir)
+		if err != nil {
+			http.Error(w, "failed to resolve base directory", http.StatusBadRequest)
+			return
+		}
+
+		absPath, err := filepath.Abs(filepath.Join(baseAbs, req.Path))
+		if err != nil {
+			http.Error(w, "invalid path", http.StatusBadRequest)
+			return
+		}
+
+		relToBase, err := filepath.Rel(baseAbs, absPath)
+		if err != nil || relToBase == ".." || strings.HasPrefix(relToBase, ".."+string(filepath.Separator)) || filepath.IsAbs(relToBase) {
+			http.Error(w, "access denied", http.StatusForbidden)
+			return
+		}
 
 		if _, err := os.Stat(absPath); err != nil {
 			if os.IsNotExist(err) {
