@@ -10,6 +10,7 @@
 - add make-release script
 - workflows updates
 
+---
 # Mo (Original releases)
 
 ## [v0.18.3](https://github.com/k1LoW/mo/compare/v0.18.2...v0.18.3) - 2026-03-13

@@ -23,8 +23,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         pip install --upgrade pip
-        pip install -r .github/scripts/create_release/requirements.txt
-        python .github/scripts/create_release/main.py
+        pip install -r .github/scripts/create-release/requirements.txt
+        python .github/scripts/create-release/main.py
 
 
 
