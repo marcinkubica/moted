@@ -154,14 +154,14 @@ func isPathAllowed(absPath string, allowedDirs []string) bool {
 // CodeQL go/path-injection: path is always internally derived (from AddFile/handleOpenFile),
 // never directly from HTTP input.
 func isBinaryFile(path string) (bool, error) {
-	fi, err := os.Stat(path) //nolint:gosec // path is internally derived // codeql[go/path-injection]
+	fi, err := os.Stat(path) //nolint:gosec // lgtm[go/path-injection] path is internally derived
 	if err != nil {
 		return false, err
 	}
 	if !fi.Mode().IsRegular() {
 		return false, fmt.Errorf("not a regular file: %s", path)
 	}
-	f, err := os.Open(path) //nolint:gosec // path is internally derived // codeql[go/path-injection]
+	f, err := os.Open(path) //nolint:gosec // lgtm[go/path-injection] path is internally derived
 	if err != nil {
 		return false, err
 	}
