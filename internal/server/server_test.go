@@ -1632,9 +1632,14 @@ func TestHandleFileRawText(t *testing.T) {
 
 		tmp := t.TempDir()
 		p := filepath.Join(tmp, "hello.md")
-		os.WriteFile(p, []byte("# Hello World\n\nSome content."), 0o644)
+		if err := os.WriteFile(p, []byte("# Hello World\n\nSome content."), 0o600); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
 
-		s.AddFile(p, DefaultGroup)
+		_, err := s.AddFile(p, DefaultGroup)
+		if err != nil {
+			t.Fatalf("failed to add file: %v", err)
+		}
 		id := FileID(p)
 
 		handler := NewHandler(s)
@@ -1664,9 +1669,14 @@ func TestHandleFileRawText(t *testing.T) {
 
 		tmp := t.TempDir()
 		p := filepath.Join(tmp, "hello.md")
-		os.WriteFile(p, []byte("# Hello"), 0o644)
+		if err := os.WriteFile(p, []byte("# Hello"), 0o600); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
 
-		s.AddFile(p, DefaultGroup)
+		_, err := s.AddFile(p, DefaultGroup)
+		if err != nil {
+			t.Fatalf("failed to add file: %v", err)
+		}
 		id := FileID(p)
 
 		handler := NewHandler(s)

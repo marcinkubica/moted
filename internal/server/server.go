@@ -96,16 +96,6 @@ type State struct {
 	trueFilenames       bool
 }
 
-// Configure sets server behaviour flags. Call before serving.
-func (s *State) Configure(noRestart, noDelete, noFileMove, noNewFileAutoSelect, shareable, trueFilenames bool) {
-	s.noRestart = noRestart
-	s.noDelete = noDelete
-	s.noFileMove = noFileMove
-	s.noNewFileAutoSelect = noNewFileAutoSelect
-	s.shareable = shareable
-	s.trueFilenames = trueFilenames
-}
-
 const defaultFileChangeDebounce = 200 * time.Millisecond
 
 func NewState(ctx context.Context) *State {
@@ -133,6 +123,16 @@ func NewState(ctx context.Context) *State {
 	}
 
 	return s
+}
+
+// Configure sets server behavior flags. Call before serving.
+func (s *State) Configure(noRestart, noDelete, noFileMove, noNewFileAutoSelect, shareable, trueFilenames bool) {
+	s.noRestart = noRestart
+	s.noDelete = noDelete
+	s.noFileMove = noFileMove
+	s.noNewFileAutoSelect = noNewFileAutoSelect
+	s.shareable = shareable
+	s.trueFilenames = trueFilenames
 }
 
 // ErrBinaryFile is returned when a file is detected as binary.
