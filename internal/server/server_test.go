@@ -1632,7 +1632,7 @@ func TestHandleFileRawText(t *testing.T) {
 
 		tmp := t.TempDir()
 		p := filepath.Join(tmp, "hello.md")
-		if err := os.WriteFile(p, []byte("# Hello World\n\nSome content."), 0o644); err != nil {
+		if err := os.WriteFile(p, []byte("# Hello World\n\nSome content."), 0o600); err != nil {
 			t.Fatalf("failed to write file: %v", err)
 		}
 
@@ -1669,7 +1669,7 @@ func TestHandleFileRawText(t *testing.T) {
 
 		tmp := t.TempDir()
 		p := filepath.Join(tmp, "hello.md")
-		if err := os.WriteFile(p, []byte("# Hello"), 0o644); err != nil {
+		if err := os.WriteFile(p, []byte("# Hello"), 0o600); err != nil {
 			t.Fatalf("failed to write file: %v", err)
 		}
 
