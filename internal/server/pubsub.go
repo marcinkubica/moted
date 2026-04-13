@@ -82,7 +82,7 @@ func (s *State) handleGCSNotification(bucket string, attrs map[string]string) {
 		return
 	}
 
-	slog.Debug("Pub/Sub event matched", "uri", uri, "event", eventType, "groups", matchedGroups)
+	slog.Info("Pub/Sub event matched", "uri", uri, "event", eventType, "groups", matchedGroups)
 
 	switch eventType {
 	case "OBJECT_FINALIZE":

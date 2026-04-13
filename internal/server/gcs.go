@@ -274,7 +274,7 @@ func (s *State) addGCSFile(uri, groupName string) (*FileEntry, error) {
 	}
 	g.Files = append(g.Files, entry)
 
-	slog.Debug("GCS file added", "uri", uri, "group", groupName, "id", entry.ID)
+	slog.Info("GCS file added", "uri", uri, "group", groupName, "id", entry.ID)
 	s.sendEvent(sseEvent{Name: eventUpdate, Data: "{}"})
 	return entry, nil
 }
