@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -26,11 +27,11 @@ func ParseGCSURI(uri string) (bucket, object string, err error) {
 		return "", "", fmt.Errorf("not a GCS URI: %s", uri)
 	}
 	rest := strings.TrimPrefix(uri, "gs://")
-	idx := strings.IndexByte(rest, '/')
-	if idx < 0 {
-		return rest, "", nil
+	bucket, object, found := strings.Cut(rest, "/")
+	if !found {
+		return bucket, "", nil
 	}
-	return rest[:idx], rest[idx+1:], nil
+	return bucket, object, nil
 }
 
 // GCSManager handles GCS operations for all configured buckets.
@@ -89,7 +90,7 @@ func (g *GCSManager) Read(ctx context.Context, uri string) ([]byte, error) {
 
 	// Write to cache (best-effort).
 	if err := os.MkdirAll(filepath.Dir(cp), 0o755); err == nil {
-		_ = os.WriteFile(cp, data, 0o644)
+		_ = os.WriteFile(cp, data, 0o600)
 	}
 
 	return data, nil
@@ -126,7 +127,7 @@ func (g *GCSManager) ExpandPattern(ctx context.Context, pattern string) ([]strin
 	var uris []string
 	for {
 		attrs, err := it.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
@@ -156,15 +157,15 @@ func (g *GCSManager) InvalidateCache(uri string) {
 	_ = os.Remove(g.cachePath(uri))
 }
 
+// Close closes the underlying GCS client.
+func (g *GCSManager) Close() error {
+	return g.client.Close()
+}
+
 // cachePath returns the local disk cache path for a GCS URI.
 func (g *GCSManager) cachePath(uri string) string {
 	bucket, object, _ := ParseGCSURI(uri)
 	return filepath.Join(g.cacheDir, bucket, object)
-}
-
-// Close closes the underlying GCS client.
-func (g *GCSManager) Close() error {
-	return g.client.Close()
 }
 
 // --- State methods for GCS ---

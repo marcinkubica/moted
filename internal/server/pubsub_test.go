@@ -76,7 +76,7 @@ func TestHandleGCSNotification_Finalize_ExistingFile(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(cachePath, []byte("old"), 0o644); err != nil {
+	if err := os.WriteFile(cachePath, []byte("old"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
