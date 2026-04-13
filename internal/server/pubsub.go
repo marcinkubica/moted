@@ -102,5 +102,16 @@ func (s *State) handleGCSNotification(bucket string, attrs map[string]string) {
 
 	case "OBJECT_DELETE":
 		s.RemoveFileByPath(uri)
+
+	case "OBJECT_ARCHIVE":
+		// On versioned buckets, overwrite emits OBJECT_ARCHIVE for the old version
+		// with overwrittenByGeneration set. OBJECT_FINALIZE handles the new version,
+		// so we ignore these.
+		// Deletion on versioned buckets emits OBJECT_ARCHIVE without
+		// overwrittenByGeneration — treat as delete.
+		if attrs["overwrittenByGeneration"] != "" {
+			return
+		}
+		s.RemoveFileByPath(uri)
 	}
 }

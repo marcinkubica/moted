@@ -125,6 +125,72 @@ func TestHandleGCSNotification_Delete(t *testing.T) {
 	}
 }
 
+func TestHandleGCSNotification_Archive_Overwrite(t *testing.T) {
+	// On versioned buckets, overwriting a file emits OBJECT_ARCHIVE for the old version
+	// with overwrittenByGeneration set. This should be ignored — OBJECT_FINALIZE handles it.
+	cacheDir := t.TempDir()
+	s := newTestStateWithGCS(t, cacheDir)
+
+	uri := "gs://my-bucket/reports/file.md"
+	s.patterns = append(s.patterns, &GlobPattern{
+		Pattern:      "gs://my-bucket/reports/**/*.md",
+		PatternSlash: "gs://my-bucket/reports/**/*.md",
+		Group:        "reports",
+	})
+	s.groups["reports"] = &Group{
+		Name: "reports",
+		Files: []*FileEntry{{
+			Name: "file.md",
+			ID:   FileID(uri),
+			Path: uri,
+		}},
+	}
+
+	s.handleGCSNotification("my-bucket", map[string]string{
+		"objectId":                "reports/file.md",
+		"eventType":              "OBJECT_ARCHIVE",
+		"objectGeneration":       "1000",
+		"overwrittenByGeneration": "2000",
+	})
+
+	// File should still exist — this was an overwrite, not a deletion.
+	if len(s.groups["reports"].Files) != 1 {
+		t.Fatalf("expected 1 file after overwrite archive, got %d", len(s.groups["reports"].Files))
+	}
+}
+
+func TestHandleGCSNotification_Archive_Deletion(t *testing.T) {
+	// On versioned buckets, deleting a file emits OBJECT_ARCHIVE without
+	// overwrittenByGeneration. This should remove the file.
+	cacheDir := t.TempDir()
+	s := newTestStateWithGCS(t, cacheDir)
+
+	uri := "gs://my-bucket/reports/file.md"
+	s.patterns = append(s.patterns, &GlobPattern{
+		Pattern:      "gs://my-bucket/reports/**/*.md",
+		PatternSlash: "gs://my-bucket/reports/**/*.md",
+		Group:        "reports",
+	})
+	s.groups["reports"] = &Group{
+		Name: "reports",
+		Files: []*FileEntry{{
+			Name: "file.md",
+			ID:   FileID(uri),
+			Path: uri,
+		}},
+	}
+
+	s.handleGCSNotification("my-bucket", map[string]string{
+		"objectId":          "reports/file.md",
+		"eventType":         "OBJECT_ARCHIVE",
+		"objectGeneration":  "2000",
+	})
+
+	if len(s.groups["reports"].Files) != 0 {
+		t.Fatalf("expected 0 files after deletion archive, got %d", len(s.groups["reports"].Files))
+	}
+}
+
 func TestHandleGCSNotification_NoMatch(t *testing.T) {
 	cacheDir := t.TempDir()
 	s := newTestStateWithGCS(t, cacheDir)
