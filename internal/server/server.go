@@ -1016,6 +1016,9 @@ func (s *State) pollOnce() {
 	s.mu.RUnlock()
 
 	for _, gp := range patterns {
+		if IsGCSPath(gp.Pattern) {
+			continue // GCS patterns use Pub/Sub, not polling.
+		}
 		base := gp.BaseDir
 		_, relPat := doublestar.SplitPattern(gp.PatternSlash)
 		matches, err := doublestar.Glob(os.DirFS(base), relPat, doublestar.WithFilesOnly())
@@ -1041,7 +1044,7 @@ func (s *State) pollOnce() {
 	trackedPaths := make(map[string]struct{})
 	for _, g := range s.groups {
 		for _, f := range g.Files {
-			if f.Uploaded || f.Path == "" {
+			if f.Uploaded || f.Path == "" || IsGCSPath(f.Path) {
 				continue
 			}
 			trackedPaths[f.Path] = struct{}{}

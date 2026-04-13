@@ -34,7 +34,7 @@ true-filenames: true
 
 ## poll for file changes at this interval (e.g. 5s, 1m)
 ## useful for filesystems that don't support inotify events (e.g. network mounts)
-## WARNING: do not use with GCS buckets - it will consume a lot of API quota and your wallet. Use Pub/Sub instead.
+## Not applied for GCS gs:// paths (use Pub/Sub instead)
 #poll-interval: 5s
 
 # Groups

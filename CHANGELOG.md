@@ -7,6 +7,8 @@
 - Disk cache for GCS file content (`$XDG_CACHE_HOME/moted/gcs/`), invalidated on Pub/Sub notification.
 - Error state display in sidebar when GCS groups fail to initialize, with automatic retry every 30 seconds.
 - Example GCS config file: `docs/config-gcs.example.yaml`.
+- Support for GCS versioned buckets: `OBJECT_ARCHIVE` events correctly distinguished between overwrites and deletions via `overwrittenByGeneration` attribute.
+- Polling (`--poll-interval`) skips GCS paths to avoid unnecessary API costs.
 
 ## [0.2.0] - 2026-04-12
 ### Added
