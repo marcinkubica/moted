@@ -73,6 +73,7 @@ func (gp *GlobPattern) IsRecursive() bool {
 }
 
 type State struct {
+	ctx         context.Context // server lifecycle context
 	mu          sync.RWMutex
 	groups      map[string]*Group
 	subscribers map[chan sseEvent]struct{}
@@ -127,6 +128,7 @@ func NewState(ctx context.Context) *State {
 	}
 
 	s := &State{
+		ctx:                ctx,
 		groups:             make(map[string]*Group),
 		subscribers:        make(map[chan sseEvent]struct{}),
 		watcher:            w,
@@ -544,7 +546,7 @@ func (s *State) ShutdownCh() <-chan struct{} {
 // watching the base directory for new files.
 func (s *State) AddPattern(absPattern, groupName string) ([]*FileEntry, error) {
 	if IsGCSPath(absPattern) {
-		return s.addGCSPattern(context.Background(), absPattern, groupName)
+		return s.addGCSPattern(s.ctx, absPattern, groupName)
 	}
 	// Use forward slashes for doublestar
 	dsPattern := filepath.ToSlash(absPattern)
@@ -623,6 +625,9 @@ func (s *State) AllowedDirs() []string {
 	seen := make(map[string]bool)
 	var dirs []string
 	for _, p := range s.patterns {
+		if IsGCSPath(p.Pattern) {
+			continue
+		}
 		if !seen[p.BaseDir] {
 			seen[p.BaseDir] = true
 			dirs = append(dirs, p.BaseDir)
@@ -630,6 +635,9 @@ func (s *State) AllowedDirs() []string {
 	}
 	for _, g := range s.groups {
 		for _, entry := range g.Files {
+			if IsGCSPath(entry.Path) {
+				continue
+			}
 			d := filepath.Dir(entry.Path)
 			if !seen[d] {
 				seen[d] = true

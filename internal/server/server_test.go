@@ -31,6 +31,7 @@ func newTestState(t *testing.T) *State {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	s := &State{
+		ctx:                ctx,
 		groups:             make(map[string]*Group),
 		subscribers:        make(map[chan sseEvent]struct{}),
 		restartCh:          make(chan string, 1),
@@ -41,7 +42,6 @@ func newTestState(t *testing.T) *State {
 		gcsErrors:          make(map[string]gcsGroupError),
 		gcsRetryTimers:     make(map[string]*time.Timer),
 	}
-	_ = ctx
 	return s
 }
 

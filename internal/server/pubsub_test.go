@@ -308,6 +308,28 @@ func TestRemoveFileByPath(t *testing.T) {
 	}
 }
 
+func TestRemoveFileByPath_MultipleGroups(t *testing.T) {
+	s := newTestState(t)
+	uri := "gs://bucket/shared.md"
+	s.groups["group-a"] = &Group{
+		Name:  "group-a",
+		Files: []*FileEntry{{Name: "shared.md", ID: FileID(uri), Path: uri}},
+	}
+	s.groups["group-b"] = &Group{
+		Name:  "group-b",
+		Files: []*FileEntry{{Name: "shared.md", ID: FileID(uri), Path: uri}},
+	}
+
+	s.RemoveFileByPath(uri)
+
+	if len(s.groups["group-a"].Files) != 0 {
+		t.Errorf("group-a: expected 0 files, got %d", len(s.groups["group-a"].Files))
+	}
+	if len(s.groups["group-b"].Files) != 0 {
+		t.Errorf("group-b: expected 0 files, got %d", len(s.groups["group-b"].Files))
+	}
+}
+
 func TestGCSGroupError_ExposedInGroups(t *testing.T) {
 	s := newTestState(t)
 	s.groups["reports"] = &Group{Name: "reports"}

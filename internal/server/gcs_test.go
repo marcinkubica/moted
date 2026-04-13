@@ -58,6 +58,31 @@ func TestIsGCSPath(t *testing.T) {
 	}
 }
 
+func TestCachePath_Traversal(t *testing.T) {
+	g := &GCSManager{cacheDir: "/tmp/moted-cache"}
+
+	// Normal path should work.
+	cp, err := g.cachePath("gs://bucket/reports/file.md")
+	if err != nil {
+		t.Fatalf("unexpected error for normal path: %v", err)
+	}
+	if cp == "" {
+		t.Fatal("expected non-empty cache path")
+	}
+
+	// Path with ".." should be rejected.
+	_, err = g.cachePath("gs://bucket/../../../etc/passwd")
+	if err == nil {
+		t.Fatal("expected error for traversal path, got nil")
+	}
+
+	// Path with enough ".." to escape cache dir should be rejected.
+	_, err = g.cachePath("gs://bucket/../../etc/shadow")
+	if err == nil {
+		t.Fatal("expected error for traversal escaping cache dir, got nil")
+	}
+}
+
 func TestFileID_GCS(t *testing.T) {
 	// GCS URIs should produce deterministic IDs.
 	uri := "gs://my-bucket/reports/file.md"

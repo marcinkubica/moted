@@ -22,6 +22,15 @@ func (s *State) StartPubSubSubscribers(ctx context.Context) error {
 		return fmt.Errorf("failed to create Pub/Sub client: %w", err)
 	}
 
+	// Close the Pub/Sub client when the server shuts down.
+	donegroup.Go(ctx, func() error {
+		<-ctx.Done()
+		if err := client.Close(); err != nil {
+			slog.Warn("failed to close Pub/Sub client", "error", err)
+		}
+		return nil
+	})
+
 	for bucketName, bs := range s.gcs.buckets {
 		if bs.Subscription == "" {
 			continue

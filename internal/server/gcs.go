@@ -67,9 +67,11 @@ func NewGCSManager(ctx context.Context, project, cacheDir string, buckets map[st
 
 // Read downloads a GCS object. Returns cached content if available.
 func (g *GCSManager) Read(ctx context.Context, uri string) ([]byte, error) {
-	cp := g.cachePath(uri)
-	if data, err := os.ReadFile(cp); err == nil {
-		return data, nil
+	cp, cpErr := g.cachePath(uri)
+	if cpErr == nil {
+		if data, err := os.ReadFile(cp); err == nil {
+			return data, nil
+		}
 	}
 
 	bucket, object, err := ParseGCSURI(uri)
@@ -89,8 +91,10 @@ func (g *GCSManager) Read(ctx context.Context, uri string) ([]byte, error) {
 	}
 
 	// Write to cache (best-effort).
-	if err := os.MkdirAll(filepath.Dir(cp), 0o755); err == nil {
-		_ = os.WriteFile(cp, data, 0o600)
+	if cpErr == nil {
+		if err := os.MkdirAll(filepath.Dir(cp), 0o755); err == nil {
+			_ = os.WriteFile(cp, data, 0o600)
+		}
 	}
 
 	return data, nil
@@ -154,7 +158,9 @@ func (g *GCSManager) ExpandPattern(ctx context.Context, pattern string) ([]strin
 
 // InvalidateCache removes the cached content for a GCS URI.
 func (g *GCSManager) InvalidateCache(uri string) {
-	_ = os.Remove(g.cachePath(uri))
+	if cp, err := g.cachePath(uri); err == nil {
+		_ = os.Remove(cp)
+	}
 }
 
 // Close closes the underlying GCS client.
@@ -163,9 +169,15 @@ func (g *GCSManager) Close() error {
 }
 
 // cachePath returns the local disk cache path for a GCS URI.
-func (g *GCSManager) cachePath(uri string) string {
+// It sanitizes the path to prevent directory traversal via ".." segments.
+func (g *GCSManager) cachePath(uri string) (string, error) {
 	bucket, object, _ := ParseGCSURI(uri)
-	return filepath.Join(g.cacheDir, bucket, object)
+	joined := filepath.Join(g.cacheDir, bucket, object)
+	cleaned := filepath.Clean(joined)
+	if !strings.HasPrefix(cleaned, filepath.Clean(g.cacheDir)+string(filepath.Separator)) {
+		return "", fmt.Errorf("cache path escapes cache dir: %s", uri)
+	}
+	return cleaned, nil
 }
 
 // --- State methods for GCS ---
@@ -192,13 +204,13 @@ func (s *State) addGCSPattern(ctx context.Context, pattern, groupName string) ([
 		return nil, fmt.Errorf("GCS pattern %q but no gcs config provided", pattern)
 	}
 
-	// Register the pattern.
-	added := func() bool {
+	// Register the pattern (only once).
+	func() {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		for _, p := range s.patterns {
 			if p.Pattern == pattern && p.Group == groupName {
-				return false
+				return
 			}
 		}
 		gp := &GlobPattern{
@@ -210,13 +222,15 @@ func (s *State) addGCSPattern(ctx context.Context, pattern, groupName string) ([
 		if _, ok := s.groups[groupName]; !ok {
 			s.groups[groupName] = &Group{Name: groupName}
 		}
-		return true
 	}()
-	if !added {
-		return nil, nil
-	}
 
-	// Expand — calls GCS list API.
+	return s.expandGCSPattern(ctx, pattern, groupName)
+}
+
+// expandGCSPattern expands a GCS pattern and adds matched files.
+// On failure, records an error state and schedules a retry.
+// Called by addGCSPattern (initial) and scheduleGCSRetry (retry).
+func (s *State) expandGCSPattern(ctx context.Context, pattern, groupName string) ([]*FileEntry, error) {
 	uris, err := s.gcs.ExpandPattern(ctx, pattern)
 	if err != nil {
 		slog.Error("GCS pattern expansion failed", "pattern", pattern, "error", err)
@@ -298,14 +312,19 @@ func (s *State) FindFileByPath(path string) *FileEntry {
 func (s *State) RemoveFileByPath(path string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	removed := false
 	for _, g := range s.groups {
-		for i, f := range g.Files {
-			if f.Path == path {
+		for i := 0; i < len(g.Files); {
+			if g.Files[i].Path == path {
 				g.Files = append(g.Files[:i], g.Files[i+1:]...)
-				s.sendEvent(sseEvent{Name: eventUpdate, Data: "{}"})
-				return
+				removed = true
+				continue
 			}
+			i++
 		}
+	}
+	if removed {
+		s.sendEvent(sseEvent{Name: eventUpdate, Data: "{}"})
 	}
 }
 
@@ -320,6 +339,6 @@ func (s *State) scheduleGCSRetry(ctx context.Context, groupName, pattern string,
 
 	s.gcsRetryTimers[groupName] = time.AfterFunc(delay, func() {
 		slog.Info("retrying GCS pattern expansion", "group", groupName, "pattern", pattern)
-		_, _ = s.addGCSPattern(ctx, pattern, groupName)
+		_, _ = s.expandGCSPattern(ctx, pattern, groupName)
 	})
 }
