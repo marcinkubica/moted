@@ -31,6 +31,7 @@ func newTestState(t *testing.T) *State {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	s := &State{
+		ctx:                ctx,
 		groups:             make(map[string]*Group),
 		subscribers:        make(map[chan sseEvent]struct{}),
 		restartCh:          make(chan string, 1),
@@ -38,8 +39,9 @@ func newTestState(t *testing.T) *State {
 		watchedDirs:        make(map[string]int),
 		fileChangeDebounce: defaultFileChangeDebounce,
 		fileChangeTimers:   make(map[string]*time.Timer),
+		gcsErrors:          make(map[string]gcsGroupError),
+		gcsRetryTimers:     make(map[string]*time.Timer),
 	}
-	_ = ctx
 	return s
 }
 
@@ -1790,6 +1792,72 @@ func TestHandleFileRawText(t *testing.T) {
 	})
 }
 
+func TestHandleFileRaw_GCS_Returns404(t *testing.T) {
+	s := newTestState(t)
+
+	gcsURI := "gs://my-bucket/reports/file.md"
+	s.mu.Lock()
+	s.groups[DefaultGroup] = &Group{
+		Name: DefaultGroup,
+		Files: []*FileEntry{{
+			Name: "file.md",
+			ID:   FileID(gcsURI),
+			Path: gcsURI,
+		}},
+	}
+	s.mu.Unlock()
+
+	handler := NewHandler(s)
+	req := httptest.NewRequest("GET", fmt.Sprintf("/_/api/files/%s/raw/image.png", FileID(gcsURI)), nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("got status %d, want %d for GCS raw asset", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestHandleGroups_GCSErrorOverlay(t *testing.T) {
+	s := newTestState(t)
+	s.groups["reports"] = &Group{Name: "reports"}
+	s.gcsErrors["reports"] = gcsGroupError{
+		Message: "permission denied",
+		RetryAt: time.Date(2026, 4, 13, 12, 0, 0, 0, time.UTC),
+	}
+
+	handler := NewHandler(s)
+	req := httptest.NewRequest("GET", "/_/api/groups", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got status %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	var groups []Group
+	if err := json.NewDecoder(rec.Body).Decode(&groups); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	var found bool
+	for _, g := range groups {
+		if g.Name == "reports" {
+			found = true
+			if g.Error != "permission denied" {
+				t.Errorf("got error %q, want %q", g.Error, "permission denied")
+			}
+			if g.RetryAt == "" {
+				t.Error("expected retryAt to be set")
+			}
+		}
+	}
+	if !found {
+		t.Error("reports group not found in response")
+	}
+}
+
 func TestMoveUploadedFile(t *testing.T) {
 	t.Run("moves uploaded file between groups", func(t *testing.T) {
 		s := newTestState(t)
@@ -2072,5 +2140,40 @@ func TestPollOnce_NoFalsePositives(t *testing.T) {
 		}
 	case <-time.After(defaultFileChangeDebounce + 50*time.Millisecond):
 		// expected: no file-changed events
+	}
+}
+
+func TestPollOnce_SkipsGCSPaths(t *testing.T) {
+	s := newTestState(t)
+	s.pollSnapshots = make(map[string]pollSnapshot)
+
+	// Add a GCS pattern and file directly (no real GCS client needed).
+	gcsURI := "gs://my-bucket/reports/file.md"
+	s.mu.Lock()
+	s.patterns = append(s.patterns, &GlobPattern{
+		Pattern:      "gs://my-bucket/reports/**/*.md",
+		PatternSlash: "gs://my-bucket/reports/**/*.md",
+		Group:        "reports",
+	})
+	s.groups["reports"] = &Group{
+		Name: "reports",
+		Files: []*FileEntry{{
+			Name: "file.md",
+			ID:   FileID(gcsURI),
+			Path: gcsURI,
+		}},
+	}
+	s.mu.Unlock()
+
+	// pollOnce should not attempt os.Stat on GCS URIs or expand GCS patterns.
+	// If it did, it would log warnings or panic — this test verifies it's skipped.
+	s.pollOnce()
+
+	// GCS paths should not appear in pollSnapshots.
+	s.mu.RLock()
+	_, tracked := s.pollSnapshots[gcsURI]
+	s.mu.RUnlock()
+	if tracked {
+		t.Fatal("GCS path should not be tracked in pollSnapshots")
 	}
 }

@@ -43,8 +43,10 @@ func FileID(absPath string) string {
 }
 
 type Group struct {
-	Name  string       `json:"name"`
-	Files []*FileEntry `json:"files"`
+	Name    string       `json:"name"`
+	Files   []*FileEntry `json:"files"`
+	Error   string       `json:"error,omitempty"`
+	RetryAt string       `json:"retryAt,omitempty"`
 }
 
 type sseEvent struct {
@@ -71,6 +73,7 @@ func (gp *GlobPattern) IsRecursive() bool {
 }
 
 type State struct {
+	ctx         context.Context // server lifecycle context
 	mu          sync.RWMutex
 	groups      map[string]*Group
 	subscribers map[chan sseEvent]struct{}
@@ -91,6 +94,11 @@ type State struct {
 	pollInterval  time.Duration
 	pollSnapshots map[string]pollSnapshot // path → last known state
 
+	// GCS support
+	gcs            *GCSManager
+	gcsErrors      map[string]gcsGroupError // group name → error state
+	gcsRetryTimers map[string]*time.Timer   // group name → retry timer
+
 	noRestart           bool
 	noDelete            bool
 	noFileMove          bool
@@ -105,6 +113,12 @@ type pollSnapshot struct {
 	modTime time.Time
 }
 
+// gcsGroupError tracks a GCS initialization failure for a group.
+type gcsGroupError struct {
+	Message string    `json:"error"`
+	RetryAt time.Time `json:"retryAt"`
+}
+
 const defaultFileChangeDebounce = 200 * time.Millisecond
 
 func NewState(ctx context.Context) *State {
@@ -114,6 +128,7 @@ func NewState(ctx context.Context) *State {
 	}
 
 	s := &State{
+		ctx:                ctx,
 		groups:             make(map[string]*Group),
 		subscribers:        make(map[chan sseEvent]struct{}),
 		watcher:            w,
@@ -122,6 +137,8 @@ func NewState(ctx context.Context) *State {
 		watchedDirs:        make(map[string]int),
 		fileChangeDebounce: defaultFileChangeDebounce,
 		fileChangeTimers:   make(map[string]*time.Timer),
+		gcsErrors:          make(map[string]gcsGroupError),
+		gcsRetryTimers:     make(map[string]*time.Timer),
 	}
 
 	if w != nil {
@@ -528,6 +545,9 @@ func (s *State) ShutdownCh() <-chan struct{} {
 // It performs an initial expansion to add existing matches and starts
 // watching the base directory for new files.
 func (s *State) AddPattern(absPattern, groupName string) ([]*FileEntry, error) {
+	if IsGCSPath(absPattern) {
+		return s.addGCSPattern(s.ctx, absPattern, groupName)
+	}
 	// Use forward slashes for doublestar
 	dsPattern := filepath.ToSlash(absPattern)
 	base, relPat := doublestar.SplitPattern(dsPattern)
@@ -605,6 +625,9 @@ func (s *State) AllowedDirs() []string {
 	seen := make(map[string]bool)
 	var dirs []string
 	for _, p := range s.patterns {
+		if IsGCSPath(p.Pattern) {
+			continue
+		}
 		if !seen[p.BaseDir] {
 			seen[p.BaseDir] = true
 			dirs = append(dirs, p.BaseDir)
@@ -612,6 +635,9 @@ func (s *State) AllowedDirs() []string {
 	}
 	for _, g := range s.groups {
 		for _, entry := range g.Files {
+			if IsGCSPath(entry.Path) {
+				continue
+			}
 			d := filepath.Dir(entry.Path)
 			if !seen[d] {
 				seen[d] = true
@@ -998,6 +1024,9 @@ func (s *State) pollOnce() {
 	s.mu.RUnlock()
 
 	for _, gp := range patterns {
+		if IsGCSPath(gp.Pattern) {
+			continue // GCS patterns use Pub/Sub, not polling.
+		}
 		base := gp.BaseDir
 		_, relPat := doublestar.SplitPattern(gp.PatternSlash)
 		matches, err := doublestar.Glob(os.DirFS(base), relPat, doublestar.WithFilesOnly())
@@ -1023,7 +1052,7 @@ func (s *State) pollOnce() {
 	trackedPaths := make(map[string]struct{})
 	for _, g := range s.groups {
 		for _, f := range g.Files {
-			if f.Uploaded || f.Path == "" {
+			if f.Uploaded || f.Path == "" || IsGCSPath(f.Path) {
 				continue
 			}
 			trackedPaths[f.Path] = struct{}{}
@@ -1430,7 +1459,7 @@ func handleGroups(state *State) http.HandlerFunc {
 			enriched := make([]*FileEntry, len(groups[i].Files))
 			for j, f := range groups[i].Files {
 				cp := *f
-				if !cp.Uploaded && cp.Path != "" {
+				if !cp.Uploaded && cp.Path != "" && !IsGCSPath(cp.Path) {
 					if info, err := os.Stat(cp.Path); err == nil {
 						cp.ModTime = info.ModTime().UTC().Format(time.RFC3339)
 					}
@@ -1439,6 +1468,15 @@ func handleGroups(state *State) http.HandlerFunc {
 			}
 			groups[i].Files = enriched
 		}
+		// Overlay GCS error state.
+		state.mu.RLock()
+		for i := range groups {
+			if e, ok := state.gcsErrors[groups[i].Name]; ok {
+				groups[i].Error = e.Message
+				groups[i].RetryAt = e.RetryAt.UTC().Format(time.RFC3339)
+			}
+		}
+		state.mu.RUnlock()
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(groups); err != nil {
 			slog.Error("failed to encode response", "error", err)
@@ -1464,6 +1502,20 @@ func handleFileContent(state *State) http.HandlerFunc {
 		if entry.Uploaded {
 			resp = fileContentResponse{
 				Content: entry.content,
+				BaseDir: "",
+			}
+		} else if IsGCSPath(entry.Path) {
+			if state.gcs == nil {
+				http.Error(w, "GCS not configured", http.StatusInternalServerError)
+				return
+			}
+			content, err := state.gcs.Read(r.Context(), entry.Path)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			resp = fileContentResponse{
+				Content: string(content),
 				BaseDir: "",
 			}
 		} else {
@@ -1506,6 +1558,17 @@ func handleFileTextRaw(state *State) http.HandlerFunc {
 		var content string
 		if entry.Uploaded {
 			content = entry.content
+		} else if IsGCSPath(entry.Path) {
+			if state.gcs == nil {
+				http.Error(w, "GCS not configured", http.StatusInternalServerError)
+				return
+			}
+			data, err := state.gcs.Read(r.Context(), entry.Path)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			content = string(data)
 		} else {
 			data, err := os.ReadFile(entry.Path) //nolint:gosec // Path is server-managed, not user-supplied
 			if err != nil {
@@ -1536,6 +1599,11 @@ func handleFileRaw(state *State) http.HandlerFunc {
 
 		if entry.Uploaded {
 			http.Error(w, "raw assets not available for uploaded files", http.StatusNotFound)
+			return
+		}
+
+		if IsGCSPath(entry.Path) {
+			http.Error(w, "raw assets not available for GCS files", http.StatusNotFound)
 			return
 		}
 

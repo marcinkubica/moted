@@ -33,6 +33,19 @@ func TestResolvePatterns_Valid(t *testing.T) {
 	}
 }
 
+func TestResolvePatterns_GCSPassthrough(t *testing.T) {
+	patterns, err := resolvePatterns([]string{"gs://my-bucket/reports/**/*.md"})
+	if err != nil {
+		t.Fatalf("resolvePatterns returned error for GCS pattern: %v", err)
+	}
+	if len(patterns) != 1 {
+		t.Fatalf("got %d patterns, want 1", len(patterns))
+	}
+	if patterns[0] != "gs://my-bucket/reports/**/*.md" {
+		t.Errorf("GCS pattern was modified: got %q, want %q", patterns[0], "gs://my-bucket/reports/**/*.md")
+	}
+}
+
 func TestRun_UnwatchWithWatch(t *testing.T) {
 	unwatchPatterns = []string{"**/*.md"}
 	watchPatterns = []string{"**/*.md"}

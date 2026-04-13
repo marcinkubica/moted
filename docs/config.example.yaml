@@ -4,17 +4,19 @@ bind: localhost
 port: 8080
 foreground: true
 quiet: true
+
+# don't open browser on startup
 no-open: true
 
 # UI behaviour
 ## do not allow to restart server via UI
-#no-restart: true
+# no-restart: true
 
 ## do not allow to delete files via UI
-#no-delete: true
+# no-delete: true
 
 ## do not allow to move files between groups via UI
-#no-file-move: true
+# no-file-move: true
 
 ## shorthand for no-restart + no-delete + no-file-move
 read-only: true
@@ -31,8 +33,9 @@ shareable: true
 true-filenames: true
 
 ## poll for file changes at this interval (e.g. 5s, 1m)
-## useful for FUSE mounts (e.g. GCSFuse) that don't emit inotify events
-poll-interval: 5s
+## useful for filesystems that don't support inotify events (e.g. network mounts)
+## Not applied for GCS gs:// paths (use Pub/Sub instead)
+#poll-interval: 5s
 
 # Groups
 groups:

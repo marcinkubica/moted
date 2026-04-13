@@ -1,0 +1,67 @@
+
+# Server
+bind: localhost
+port: 8080
+foreground: true
+no-open: true
+
+# UI behaviour
+read-only: false
+newfile-no-autoselect: true
+shareable: true
+true-filenames: true
+
+# GCS (Google Cloud Storage) with Pub/Sub notifications
+# Authentication: Application Default Credentials
+#   - gcloud auth application-default login (local dev)
+#   - GKE Workload Identity (production, no extra config needed)
+#   - GOOGLE_APPLICATION_CREDENTIALS env var (service account key)
+gcs:
+  project: my-gcp-project
+  # cache-dir: /tmp/moted-gcs-cache  # optional, defaults to $XDG_CACHE_HOME/moted/gcs/
+  buckets:
+    my-bucket:
+      subscription: moted-my-bucket-sub
+    other-bucket:
+      subscription: moted-other-bucket-sub
+
+# Groups — gs:// URIs in watch patterns trigger GCS mode
+groups:
+  - name: local-docs
+    watch:
+      - ./**/*.md
+
+  - name: reports
+    watch:
+      - gs://my-bucket/reports/**/*.md
+      - gs://my-bucket/summaries/**/*.md
+
+  - name: external
+    watch:
+      - gs://other-bucket/docs/**/*.md
+
+# Example GCP setup (one-time, per bucket):
+#
+#   # --- my-bucket ---
+#   gcloud pubsub topics create moted-my-bucket
+#
+#   gsutil notification create \
+#     -t moted-my-bucket \
+#     -f json \
+#     -e OBJECT_FINALIZE -e OBJECT_DELETE \
+#     gs://my-bucket
+#
+#   gcloud pubsub subscriptions create moted-my-bucket-sub \
+#     --topic=moted-my-bucket
+#
+#   # --- other-bucket ---
+#   gcloud pubsub topics create moted-other-bucket
+#
+#   gsutil notification create \
+#     -t moted-other-bucket \
+#     -f json \
+#     -e OBJECT_FINALIZE -e OBJECT_DELETE \
+#     gs://other-bucket
+#
+#   gcloud pubsub subscriptions create moted-other-bucket-sub \
+#     --topic=moted-other-bucket

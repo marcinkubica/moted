@@ -31,7 +31,11 @@
 - File timestamps (creation time or relative time)
 - Readiness endpoint for health checks
 - [docker build](https://github.com/marcinkubica/moted/pkgs/container/moted) image
-- Polling mode for FUSE mounts (e.g. GCSFuse) where inotify events are not emitted for externally modified files
+
+**Features:**
+- Polling mode for filesystems where inotify events are not emitted for externally modified files:
+  - WARNING: do not use with gcsfuse due to costs and API quota usage.
+- Support GCS Bucket watching (with Pub/Sub)
 
 **UI changes:**
 - Sticky toolbar for easier user actions while scrolling
@@ -39,7 +43,7 @@
 - Smart table word-wrap: wide tables automatically reflow cell content to fit the viewport
 - Adjustable font size
 - Improved ToC panel with scroll tracking and highlighting
-- Share raw file content via direct links
+- Share raw file content via direct links - useful for filesharing with AI agents
 - Control auto-selection of newly added files
 - Navigate to files by filename in URL
 - Smooth animations and transitions
@@ -47,7 +51,7 @@
 
 ## Planned Features
 - Google/Github SSO
-- GCS bucket watching
+
 
 
 > Quick start

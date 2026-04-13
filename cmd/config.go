@@ -25,6 +25,7 @@ type configFile struct {
 	ServerMode          bool          `yaml:"server"`
 	Shouty              bool          `yaml:"shouty"`
 	PollInterval        string        `yaml:"poll-interval"`
+	GCS                 *gcsConfig    `yaml:"gcs"`
 	Groups              []groupConfig `yaml:"groups"`
 }
 
@@ -32,6 +33,16 @@ type groupConfig struct {
 	Name  string   `yaml:"name"`
 	Watch []string `yaml:"watch"`
 	Files []string `yaml:"files"`
+}
+
+type gcsConfig struct {
+	Project  string                  `yaml:"project"`
+	CacheDir string                  `yaml:"cache-dir"`
+	Buckets  map[string]bucketConfig `yaml:"buckets"`
+}
+
+type bucketConfig struct {
+	Subscription string `yaml:"subscription"`
 }
 
 func loadConfigFile(path string) (*configFile, error) {

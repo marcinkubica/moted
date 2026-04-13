@@ -24,6 +24,7 @@ import (
 	"moted/internal/backup"
 	"moted/internal/logfile"
 	"moted/internal/server"
+	"moted/internal/xdg"
 	"moted/version"
 
 	"github.com/k1LoW/donegroup"
@@ -284,7 +285,7 @@ func run(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to restore state: %w", err)
 		}
-		return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup, uploadedFiles)
+		return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup, uploadedFiles, nil)
 	}
 
 	if cfg != nil {
@@ -304,7 +305,7 @@ func run(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		if foreground {
-			return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup, nil)
+			return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup, nil, cfg.GCS)
 		}
 		return startBackground(addr, filesByGroup, patternsByGroup, nil)
 	}
@@ -385,7 +386,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	if foreground {
-		return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup, uploadedFiles)
+		return startServer(cmd.Context(), addr, filesByGroup, patternsByGroup, uploadedFiles, nil)
 	}
 	return startBackground(addr, filesByGroup, patternsByGroup, uploadedFiles)
 }
@@ -494,6 +495,11 @@ func resolvePatterns(patterns []string) ([]string, error) {
 	for _, pat := range patterns {
 		if !hasGlobChars(pat) {
 			return nil, fmt.Errorf("pattern %q does not contain glob characters (* ? [); use file arguments instead", pat)
+		}
+		// GCS patterns are passed through as-is — no local path resolution.
+		if strings.HasPrefix(pat, "gs://") {
+			resolved = append(resolved, pat)
+			continue
 		}
 		abs, err := filepath.Abs(pat)
 		if err != nil {
@@ -1069,7 +1075,7 @@ func discoverPorts() []int {
 	return ports
 }
 
-func startServer(ctx context.Context, addr string, filesByGroup map[string][]string, patternsByGroup map[string][]string, uploadedFiles []server.UploadedFileData) error {
+func startServer(ctx context.Context, addr string, filesByGroup map[string][]string, patternsByGroup map[string][]string, uploadedFiles []server.UploadedFileData, gcsCfg *gcsConfig) error {
 	sigCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -1099,6 +1105,31 @@ func startServer(ctx context.Context, addr string, filesByGroup map[string][]str
 			return fmt.Errorf("--poll-interval must be positive, got %s", d)
 		}
 		state.SetPollInterval(ctx, d)
+	}
+
+	// Initialize GCS if configured.
+	if gcsCfg != nil {
+		if gcsCfg.Project == "" {
+			return fmt.Errorf("gcs.project is required when gcs is configured")
+		}
+		cacheDir := gcsCfg.CacheDir
+		if cacheDir == "" {
+			cacheHome, err := xdg.CacheHome()
+			if err != nil {
+				return fmt.Errorf("failed to resolve cache home: %w", err)
+			}
+			cacheDir = filepath.Join(cacheHome, "moted", "gcs")
+		}
+		if err := os.MkdirAll(cacheDir, 0o755); err != nil {
+			return fmt.Errorf("failed to create GCS cache dir: %w", err)
+		}
+		buckets := make(map[string]string, len(gcsCfg.Buckets))
+		for name, bc := range gcsCfg.Buckets {
+			buckets[name] = bc.Subscription
+		}
+		if err := state.SetupGCS(ctx, gcsCfg.Project, cacheDir, buckets); err != nil {
+			return fmt.Errorf("failed to initialize GCS: %w", err)
+		}
 	}
 
 	state.EnableBackup(ctx, func(data server.RestoreData) {
@@ -1139,6 +1170,13 @@ func startServer(ctx context.Context, addr string, filesByGroup map[string][]str
 					Path: entry.Path,
 				})
 			}
+		}
+	}
+
+	// Start Pub/Sub subscribers after all patterns are registered.
+	if state.HasGCS() {
+		if err := state.StartPubSubSubscribers(ctx); err != nil {
+			slog.Error("failed to start Pub/Sub subscribers", "error", err)
 		}
 	}
 

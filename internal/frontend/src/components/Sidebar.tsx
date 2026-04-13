@@ -155,10 +155,11 @@ export function Sidebar({
   timestampMode,
   version,
 }: SidebarProps) {
-  const allFiles = useMemo(() => {
-    const currentGroup = groups.find((g) => g.name === activeGroup);
-    return currentGroup?.files ?? [];
-  }, [groups, activeGroup]);
+  const currentGroup = useMemo(
+    () => groups.find((g) => g.name === activeGroup),
+    [groups, activeGroup],
+  );
+  const allFiles = useMemo(() => currentGroup?.files ?? [], [currentGroup]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const searchOpen = searchQuery != null;
@@ -308,6 +309,17 @@ export function Sidebar({
         </div>
       </div>
       <nav className="flex flex-col pb-1 flex-1 overflow-y-auto min-h-0">
+        {currentGroup?.error && (
+          <div className="mx-2 my-1 p-2 text-xs rounded border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400">
+            <p className="font-medium">Failed to load files</p>
+            <p className="mt-1 opacity-80">{currentGroup.error}</p>
+            {currentGroup.retryAt && (
+              <p className="mt-1 opacity-60">
+                Retrying at {new Date(currentGroup.retryAt).toLocaleTimeString()}
+              </p>
+            )}
+          </div>
+        )}
         {viewMode === "tree" ? (
           <TreeView
             ref={treeViewRef}
