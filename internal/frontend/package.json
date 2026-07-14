@@ -27,7 +27,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@shikijs/rehype": "^4.3.0",
+    "@shikijs/rehype": "^4.3.1",
     "github-markdown-css": "^5.8.1",
     "katex": "^0.17.0",
     "mermaid": "^11.16.0",
@@ -40,7 +40,7 @@
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "shiki": "^4.3.0"
+    "shiki": "^4.3.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
@@ -50,15 +50,15 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^6.0.3",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/coverage-v8": "^4.1.10",
     "jsdom": "^29.1.1",
-    "oxfmt": "^0.57.0",
-    "oxlint": "^1.72.0",
+    "oxfmt": "^0.58.0",
+    "oxlint": "^1.73.0",
     "playwright": "^1.61.1",
     "rollup-plugin-license": "^3.7.1",
     "tailwindcss": "^4.3.2",
-    "typescript": "~6.0.3",
-    "vite": "^8.1.0",
-    "vitest": "^4.1.9"
+    "typescript": "~7.0.2",
+    "vite": "^8.1.4",
+    "vitest": "^4.1.10"
   }
 }
